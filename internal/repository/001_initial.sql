@@ -12,6 +12,7 @@ CREATE TABLE IF NOT EXISTS documents (
     status TEXT NOT NULL DEFAULT 'pending',  -- 'pending', 'processing', 'ready', 'error'
     error_message TEXT,
     language TEXT DEFAULT '',
+    chapter_count INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now')),
     updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
