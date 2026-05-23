@@ -5,6 +5,7 @@ go 1.26.3
 require (
 	github.com/PuerkitoBio/goquery v1.12.0
 	github.com/caarlos0/env/v11 v11.4.1
+	github.com/go-chi/chi/v5 v5.3.0
 	github.com/google/uuid v1.6.0
 	golang.org/x/net v0.52.0
 	modernc.org/sqlite v1.50.1
@@ -13,7 +14,6 @@ require (
 require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
-	github.com/go-chi/chi/v5 v5.3.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/ncruces/go-strftime v1.0.0 // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
