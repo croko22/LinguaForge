@@ -99,16 +99,22 @@ func (r *chapterRepo) ListByDocumentID(ctx context.Context, documentID string) (
 	var chapters []*model.Chapter
 	for rows.Next() {
 		ch := &model.Chapter{}
+		var createdRaw any
 		if err := rows.Scan(
 			&ch.ID,
 			&ch.DocumentID,
 			&ch.ChapterIndex,
 			&ch.ChapterTitle,
 			&ch.TokenCount,
-			&ch.CreatedAt,
+			&createdRaw,
 		); err != nil {
 			return nil, fmt.Errorf("list chapters scan: %w", err)
 		}
+		createdAt, err := parseDBTime(createdRaw)
+		if err != nil {
+			return nil, fmt.Errorf("parse created_at: %w", err)
+		}
+		ch.CreatedAt = createdAt
 		chapters = append(chapters, ch)
 	}
 	if err := rows.Err(); err != nil {
@@ -124,6 +130,7 @@ func (r *chapterRepo) GetByDocumentAndIndex(ctx context.Context, documentID stri
 		WHERE document_id = ? AND chapter_index = ?
 	`
 	ch := &model.Chapter{}
+	var createdRaw any
 	err := r.db.QueryRowContext(ctx, query, documentID, index).Scan(
 		&ch.ID,
 		&ch.DocumentID,
@@ -131,7 +138,7 @@ func (r *chapterRepo) GetByDocumentAndIndex(ctx context.Context, documentID stri
 		&ch.ChapterTitle,
 		&ch.Content,
 		&ch.TokenCount,
-		&ch.CreatedAt,
+		&createdRaw,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -139,6 +146,11 @@ func (r *chapterRepo) GetByDocumentAndIndex(ctx context.Context, documentID stri
 		}
 		return nil, fmt.Errorf("get chapter by document and index: %w", err)
 	}
+	createdAt, err := parseDBTime(createdRaw)
+	if err != nil {
+		return nil, fmt.Errorf("parse created_at: %w", err)
+	}
+	ch.CreatedAt = createdAt
 	return ch, nil
 }
 

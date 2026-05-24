@@ -142,11 +142,17 @@ func (s *DocumentService) UploadDocument(ctx context.Context, filename string, f
 	}
 
 	// Populate the returned document with parsed metadata.
-	doc.Title = parsedDoc.Title
+	if parsedDoc.Title != "" {
+		doc.Title = parsedDoc.Title
+	}
 	doc.Language = parsedDoc.Language
 	doc.ChapterCount = len(chapters)
 	doc.Status = model.StatusReady
 	doc.UpdatedAt = time.Now().UTC()
+
+	if err := s.docRepo.UpdateMetadata(ctx, doc); err != nil {
+		return nil, fmt.Errorf("upload document: update metadata: %w", err)
+	}
 
 	return doc, nil
 }

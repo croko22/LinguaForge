@@ -14,6 +14,7 @@ type DocumentRepository interface {
 	GetByID(ctx context.Context, id string) (*model.Document, error)
 	List(ctx context.Context) ([]*model.DocumentSummary, error)
 	UpdateStatus(ctx context.Context, id, status string, errMsg ...string) error
+	UpdateMetadata(ctx context.Context, doc *model.Document) error
 }
 
 type documentRepo struct {
@@ -59,6 +60,8 @@ func (r *documentRepo) GetByID(ctx context.Context, id string) (*model.Document,
 		WHERE id = ?
 	`
 	doc := &model.Document{}
+	var createdRaw any
+	var updatedRaw any
 	err := r.db.QueryRowContext(ctx, query, id).Scan(
 		&doc.ID,
 		&doc.Title,
@@ -70,8 +73,8 @@ func (r *documentRepo) GetByID(ctx context.Context, id string) (*model.Document,
 		&doc.ErrorMessage,
 		&doc.Language,
 		&doc.ChapterCount,
-		&doc.CreatedAt,
-		&doc.UpdatedAt,
+		&createdRaw,
+		&updatedRaw,
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
@@ -79,6 +82,18 @@ func (r *documentRepo) GetByID(ctx context.Context, id string) (*model.Document,
 		}
 		return nil, fmt.Errorf("get document by id: %w", err)
 	}
+
+	createdAt, err := parseDBTime(createdRaw)
+	if err != nil {
+		return nil, fmt.Errorf("parse created_at: %w", err)
+	}
+	updatedAt, err := parseDBTime(updatedRaw)
+	if err != nil {
+		return nil, fmt.Errorf("parse updated_at: %w", err)
+	}
+	
+	doc.CreatedAt = createdAt
+	doc.UpdatedAt = updatedAt
 	return doc, nil
 }
 
@@ -98,6 +113,7 @@ func (r *documentRepo) List(ctx context.Context) ([]*model.DocumentSummary, erro
 	var summaries []*model.DocumentSummary
 	for rows.Next() {
 		s := &model.DocumentSummary{}
+		var createdRaw any
 		if err := rows.Scan(
 			&s.ID,
 			&s.Title,
@@ -106,10 +122,15 @@ func (r *documentRepo) List(ctx context.Context) ([]*model.DocumentSummary, erro
 			&s.Status,
 			&s.Language,
 			&s.ChapterCount,
-			&s.CreatedAt,
+			&createdRaw,
 		); err != nil {
 			return nil, fmt.Errorf("list documents scan: %w", err)
 		}
+		createdAt, err := parseDBTime(createdRaw)
+		if err != nil {
+			return nil, fmt.Errorf("parse created_at: %w", err)
+		}
+		s.CreatedAt = createdAt
 		summaries = append(summaries, s)
 	}
 	if err := rows.Err(); err != nil {
@@ -137,6 +158,32 @@ func (r *documentRepo) UpdateStatus(ctx context.Context, id, status string, errM
 	rows, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("update document status rows affected: %w", err)
+	}
+	if rows == 0 {
+		return fmt.Errorf("document not found: %w", sql.ErrNoRows)
+	}
+	return nil
+}
+
+func (r *documentRepo) UpdateMetadata(ctx context.Context, doc *model.Document) error {
+	query := `
+		UPDATE documents
+		SET title = ?, language = ?, chapter_count = ?, updated_at = ?
+		WHERE id = ?
+	`
+	result, err := r.db.ExecContext(ctx, query,
+		doc.Title,
+		doc.Language,
+		doc.ChapterCount,
+		doc.UpdatedAt,
+		doc.ID,
+	)
+	if err != nil {
+		return fmt.Errorf("update document metadata: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("update document metadata rows affected: %w", err)
 	}
 	if rows == 0 {
 		return fmt.Errorf("document not found: %w", sql.ErrNoRows)
