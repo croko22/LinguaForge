@@ -1,14 +1,37 @@
-import { useDocuments } from '../hooks/useDocuments'
+import { useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
+import { useDocuments, useUploadDocument } from '../hooks/useDocuments'
+import UploadDialog from '../components/UploadDialog'
 import type { DocumentSummary } from '../api/documents'
 
 export default function LibraryPage() {
+  const queryClient = useQueryClient()
   const { data: documents, isLoading } = useDocuments()
+  const uploadMutation = useUploadDocument()
+  const [isUploadOpen, setIsUploadOpen] = useState(false)
+
+  const handleUpload = async (file: File) => {
+    const result = await uploadMutation.mutateAsync(file)
+    queryClient.setQueryData<DocumentSummary[]>(['documents'], (old) => [...(old ?? []), result])
+    setIsUploadOpen(false)
+  }
 
   if (isLoading) {
     return (
       <div className="max-w-6xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-4">My Library</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">My Library</h1>
+          {!isUploadOpen && (
+            <button
+              onClick={() => setIsUploadOpen(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Upload
+            </button>
+          )}
+        </div>
         <p className="text-gray-500">Loading...</p>
+        <UploadDialog open={isUploadOpen} onClose={() => setIsUploadOpen(false)} onUpload={handleUpload} />
       </div>
     )
   }
@@ -16,20 +39,42 @@ export default function LibraryPage() {
   if (documents && documents.length === 0) {
     return (
       <div className="max-w-6xl mx-auto p-6">
-        <h1 className="text-2xl font-bold mb-4">My Library</h1>
+        <div className="flex justify-between items-center mb-4">
+          <h1 className="text-2xl font-bold">My Library</h1>
+          {!isUploadOpen && (
+            <button
+              onClick={() => setIsUploadOpen(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            >
+              Upload
+            </button>
+          )}
+        </div>
         <p className="text-gray-500">No documents yet. Upload your first EPUB.</p>
+        <UploadDialog open={isUploadOpen} onClose={() => setIsUploadOpen(false)} onUpload={handleUpload} />
       </div>
     )
   }
 
   return (
     <div className="max-w-6xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">My Library</h1>
+      <div className="flex justify-between items-center mb-4">
+        <h1 className="text-2xl font-bold">My Library</h1>
+        {!isUploadOpen && (
+          <button
+            onClick={() => setIsUploadOpen(true)}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Upload
+          </button>
+        )}
+      </div>
       <div className="grid gap-4">
         {documents?.map((doc) => (
           <DocumentCard key={doc.id} document={doc} />
         ))}
       </div>
+      <UploadDialog open={isUploadOpen} onClose={() => setIsUploadOpen(false)} onUpload={handleUpload} />
     </div>
   )
 }
