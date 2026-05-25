@@ -212,9 +212,9 @@ func setupIntegrationTest(t *testing.T) (*testDeps, func()) {
 	// ── Chi router ─────────────────────────────────────────────────────────
 	r := chi.NewRouter()
 	docHandler.RegisterRoutes(r)
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{"status":"ok"}`))
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
 	})
 
 	deps := &testDeps{
@@ -275,7 +275,7 @@ func parseJSON(t *testing.T, body io.Reader, target interface{}) {
 
 // TestUploadAndRetrieveEPUB exercises the full upload, list, get,
 // and chapter retrieval flow.
-func TestUploadAndRetrieveEPUB(t *testing.T) {
+func TestUploadAndRetrieveEPUB(t *testing.T) { //nolint:gocognit,gocyclo // comprehensive integration test covering the full flow
 	deps, cleanup := setupIntegrationTest(t)
 	defer cleanup()
 

@@ -52,7 +52,7 @@ func (r *chapterRepo) CreateBatch(ctx context.Context, chapters []*model.Chapter
 	if err != nil {
 		return fmt.Errorf("begin transaction: %w", err)
 	}
-	defer tx.Rollback() // no-op if already committed
+	defer func() { _ = tx.Rollback() }()
 
 	stmt, err := tx.PrepareContext(ctx, `
 		INSERT INTO document_chapters (id, document_id, chapter_index, chapter_title, content, token_count, created_at)

@@ -91,7 +91,7 @@ func (r *documentRepo) GetByID(ctx context.Context, id string) (*model.Document,
 	if err != nil {
 		return nil, fmt.Errorf("parse updated_at: %w", err)
 	}
-	
+
 	doc.CreatedAt = createdAt
 	doc.UpdatedAt = updatedAt
 	return doc, nil

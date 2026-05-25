@@ -23,7 +23,7 @@ func NewLocalFileStorage(baseDir string) (*LocalFileStorage, error) {
 	if err != nil {
 		return nil, fmt.Errorf("resolve base dir: %w", err)
 	}
-	if err := os.MkdirAll(absDir, 0755); err != nil {
+	if err := os.MkdirAll(absDir, 0750); err != nil {
 		return nil, fmt.Errorf("create base dir: %w", err)
 	}
 	return &LocalFileStorage{baseDir: absDir}, nil
@@ -31,7 +31,7 @@ func NewLocalFileStorage(baseDir string) (*LocalFileStorage, error) {
 
 // Store saves a file from reader and returns the relative storage path.
 // The stored filename is {uuid}_{original} to avoid collisions.
-func (s *LocalFileStorage) Store(ctx context.Context, filename string, reader io.Reader) (string, error) {
+func (s *LocalFileStorage) Store(_ context.Context, filename string, reader io.Reader) (string, error) {
 	id, err := uuid.NewRandom()
 	if err != nil {
 		return "", fmt.Errorf("generate uuid: %w", err)
@@ -45,7 +45,7 @@ func (s *LocalFileStorage) Store(ctx context.Context, filename string, reader io
 		return "", fmt.Errorf("resolved path escapes base directory")
 	}
 
-	f, err := os.Create(fullPath)
+	f, err := os.Create(fullPath) // #nosec G304 — validated by isWithin check above
 	if err != nil {
 		return "", fmt.Errorf("create file: %w", err)
 	}
@@ -63,16 +63,16 @@ func (s *LocalFileStorage) Store(ctx context.Context, filename string, reader io
 }
 
 // Get opens a file for reading by its relative storage path.
-func (s *LocalFileStorage) Get(ctx context.Context, pathStr string) (io.ReadCloser, error) {
+func (s *LocalFileStorage) Get(_ context.Context, pathStr string) (io.ReadCloser, error) {
 	fullPath := filepath.Join(s.baseDir, path.Clean(pathStr))
 	if !isWithin(s.baseDir, fullPath) {
 		return nil, fmt.Errorf("resolved path escapes base directory")
 	}
-	return os.Open(fullPath)
+	return os.Open(fullPath) // #nosec G304 — validated by isWithin check above
 }
 
 // Delete removes a file by its relative storage path.
-func (s *LocalFileStorage) Delete(ctx context.Context, pathStr string) error {
+func (s *LocalFileStorage) Delete(_ context.Context, pathStr string) error {
 	fullPath := filepath.Join(s.baseDir, path.Clean(pathStr))
 	if !isWithin(s.baseDir, fullPath) {
 		return fmt.Errorf("resolved path escapes base directory")

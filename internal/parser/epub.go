@@ -99,54 +99,96 @@ func (p *EpubParser) CanParse(filename string) bool {
 
 // Parse reads an EPUB file and returns a ParsedDocument with chapters.
 func (p *EpubParser) Parse(readerAt ReaderAt, size int64) (*model.ParsedDocument, error) {
-	// ── 1. Open ZIP reader ────────────────────────────────────────────────
+	zipFiles, err := openEPUB(readerAt, size)
+	if err != nil {
+		return nil, err
+	}
+
+	pkg, opfBaseDir, err := parseOPF(zipFiles)
+	if err != nil {
+		return nil, err
+	}
+
+	manifestHrefs := buildManifestHrefs(pkg, opfBaseDir)
+
+	doc := extractMetadata(pkg)
+
+	spineHrefs := buildSpineHrefs(pkg, manifestHrefs)
+
+	chapters := mapChapters(pkg, manifestHrefs, opfBaseDir, zipFiles, spineHrefs)
+
+	// Fallback: if nothing matched, create a single anonymous chapter.
+	if len(chapters) == 0 {
+		chapters = append(chapters, chapterDef{
+			title: doc.Title,
+			hrefs: spineHrefs,
+		})
+	}
+
+	for _, ch := range chapters {
+		content := extractChapterContent(ch.hrefs, zipFiles)
+		doc.Chapters = append(doc.Chapters, model.ParsedChapter{
+			Index:   len(doc.Chapters),
+			Title:   ch.title,
+			Content: content,
+		})
+	}
+
+	return doc, nil
+}
+
+func openEPUB(readerAt ReaderAt, size int64) (map[string]*zip.File, error) {
 	zipReader, err := zip.NewReader(readerAt, size)
 	if err != nil {
 		return nil, fmt.Errorf("epub: failed to open zip: %w", err)
 	}
-
-	// Index files by name for O(1) lookup.
 	zipFiles := make(map[string]*zip.File, len(zipReader.File))
 	for _, f := range zipReader.File {
 		zipFiles[f.Name] = f
 	}
+	return zipFiles, nil
+}
 
-	// ── 2–3. Read and parse META-INF/container.xml ────────────────────────
+func parseOPF(zipFiles map[string]*zip.File) (Package, string, error) {
 	containerData, err := readZipFile(zipFiles, "META-INF/container.xml")
 	if err != nil {
-		return nil, fmt.Errorf("epub: missing META-INF/container.xml: %w", err)
+		return Package{}, "", fmt.Errorf("epub: missing META-INF/container.xml: %w", err)
 	}
 
 	var container Container
 	if err := xml.Unmarshal(containerData, &container); err != nil {
-		return nil, fmt.Errorf("epub: failed to parse container.xml: %w", err)
+		return Package{}, "", fmt.Errorf("epub: failed to parse container.xml: %w", err)
 	}
 
 	if len(container.Rootfiles.Rootfile) == 0 {
-		return nil, fmt.Errorf("epub: no rootfile found in container.xml")
+		return Package{}, "", fmt.Errorf("epub: no rootfile found in container.xml")
 	}
 
 	opfPath := container.Rootfiles.Rootfile[0].FullPath
 	opfBaseDir := path.Dir(opfPath)
 
-	// ── 4–5. Read and parse OPF ──────────────────────────────────────────
 	opfData, err := readZipFile(zipFiles, opfPath)
 	if err != nil {
-		return nil, fmt.Errorf("epub: failed to read OPF %s: %w", opfPath, err)
+		return Package{}, "", fmt.Errorf("epub: failed to read OPF %s: %w", opfPath, err)
 	}
 
 	var pkg Package
 	if err := xml.Unmarshal(opfData, &pkg); err != nil {
-		return nil, fmt.Errorf("epub: failed to parse OPF: %w", err)
+		return Package{}, "", fmt.Errorf("epub: failed to parse OPF: %w", err)
 	}
 
-	// Build manifest lookup: manifest ID → resolved href.
+	return pkg, opfBaseDir, nil
+}
+
+func buildManifestHrefs(pkg Package, opfBaseDir string) map[string]string {
 	manifestHrefs := make(map[string]string, len(pkg.Manifest.Items))
 	for _, item := range pkg.Manifest.Items {
 		manifestHrefs[item.ID] = path.Clean(path.Join(opfBaseDir, item.Href))
 	}
+	return manifestHrefs
+}
 
-	// ── 5a–c. Extract metadata ────────────────────────────────────────────
+func extractMetadata(pkg Package) *model.ParsedDocument {
 	doc := &model.ParsedDocument{}
 	if len(pkg.Metadata.Titles) > 0 {
 		doc.Title = strings.TrimSpace(pkg.Metadata.Titles[0])
@@ -158,11 +200,30 @@ func (p *EpubParser) Parse(readerAt ReaderAt, size int64) (*model.ParsedDocument
 		}
 	}
 	doc.Language = strings.TrimSpace(pkg.Metadata.Language)
+	return doc
+}
 
-	// ── 6. Try to load NCX for chapter navigation ────────────────────────
+func buildSpineHrefs(pkg Package, manifestHrefs map[string]string) []string {
+	spineHrefs := make([]string, 0, len(pkg.Spine.Items))
+	seen := make(map[string]bool, len(pkg.Spine.Items))
+	for _, item := range pkg.Spine.Items {
+		href, ok := manifestHrefs[item.IDRef]
+		if !ok {
+			continue
+		}
+		canonical := path.Clean(href)
+		if seen[canonical] {
+			continue
+		}
+		seen[canonical] = true
+		spineHrefs = append(spineHrefs, canonical)
+	}
+	return spineHrefs
+}
+
+func mapChapters(pkg Package, manifestHrefs map[string]string, opfBaseDir string, zipFiles map[string]*zip.File, spineHrefs []string) []chapterDef {
 	ncxHref := resolveNCXPath(pkg, manifestHrefs, opfBaseDir)
 
-	// Parse NCX if found.
 	var ncx *NCX
 	if ncxHref != "" {
 		if ncxData, err := readZipFile(zipFiles, ncxHref); err == nil {
@@ -173,56 +234,18 @@ func (p *EpubParser) Parse(readerAt ReaderAt, size int64) (*model.ParsedDocument
 		}
 	}
 
-	// ── 7. Build ordered list of spine content hrefs ─────────────────────
-	spineHrefs := make([]string, 0, len(pkg.Spine.Items))
-	seen := make(map[string]bool, len(pkg.Spine.Items))
-	for _, item := range pkg.Spine.Items {
-		href, ok := manifestHrefs[item.IDRef]
-		if !ok {
-			continue
-		}
-		canonical := path.Clean(href)
-		if seen[canonical] {
-			continue // skip duplicates
-		}
-		seen[canonical] = true
-		spineHrefs = append(spineHrefs, canonical)
-	}
-
-	// ── 8. Map chapters ──────────────────────────────────────────────────
-	var chapters []chapterDef
-
 	if ncx != nil && len(ncx.NavMap.NavPoints) > 0 {
-		chapters = mapChaptersFromNCX(ncx, ncxHref, spineHrefs)
-	} else {
-		// No NCX: one chapter per spine item with generic titles.
-		for i, href := range spineHrefs {
-			chapters = append(chapters, chapterDef{
-				title: fmt.Sprintf("Chapter %d", i+1),
-				hrefs: []string{href},
-			})
-		}
+		return mapChaptersFromNCX(ncx, ncxHref, spineHrefs)
 	}
 
-	// Fallback: if nothing matched, create a single anonymous chapter.
-	if len(chapters) == 0 {
+	chapters := make([]chapterDef, 0, len(spineHrefs))
+	for i, href := range spineHrefs {
 		chapters = append(chapters, chapterDef{
-			title: doc.Title,
-			hrefs: spineHrefs,
+			title: fmt.Sprintf("Chapter %d", i+1),
+			hrefs: []string{href},
 		})
 	}
-
-	// ── 9–10. Extract content and build result ──────────────────────────
-	for _, ch := range chapters {
-		content := extractChapterContent(ch.hrefs, zipFiles)
-		doc.Chapters = append(doc.Chapters, model.ParsedChapter{
-			Index:   len(doc.Chapters),
-			Title:   ch.title,
-			Content: content,
-		})
-	}
-
-	return doc, nil
+	return chapters
 }
 
 // ── NCX resolution ───────────────────────────────────────────────────────────
@@ -290,8 +313,8 @@ func mapChaptersFromNCX(ncx *NCX, ncxHref string, spineHrefs []string) []chapter
 	}
 	if len(uncovered) > 0 {
 		chapters = append(chapters, chapterDef{
-			title:  fmt.Sprintf("Chapter %d", len(chapters)+1),
-			hrefs:  uncovered,
+			title: fmt.Sprintf("Chapter %d", len(chapters)+1),
+			hrefs: uncovered,
 		})
 	}
 

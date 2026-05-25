@@ -28,17 +28,18 @@ func NewDocumentHandler(svc *service.DocumentService) *DocumentHandler {
 // RegisterRoutes registers all document API routes on the given router.
 func (h *DocumentHandler) RegisterRoutes(r chi.Router) {
 	r.Route("/api/documents", func(r chi.Router) {
-		r.Post("/", h.UploadDocument)                                  // POST /api/documents
-		r.Get("/", h.ListDocuments)                                    // GET /api/documents
-		r.Get("/{id}", h.GetDocument)                                  // GET /api/documents/{id}
-		r.Get("/{id}/chapters", h.ListChapters)                        // GET /api/documents/{id}/chapters
-		r.Get("/{id}/chapters/{index}", h.GetChapterContent)           // GET /api/documents/{id}/chapters/{index}
+		r.Post("/", h.UploadDocument)                        // POST /api/documents
+		r.Get("/", h.ListDocuments)                          // GET /api/documents
+		r.Get("/{id}", h.GetDocument)                        // GET /api/documents/{id}
+		r.Get("/{id}/chapters", h.ListChapters)              // GET /api/documents/{id}/chapters
+		r.Get("/{id}/chapters/{index}", h.GetChapterContent) // GET /api/documents/{id}/chapters/{index}
 	})
 }
 
 // UploadDocument handles POST /api/documents — uploads a new document.
 func (h *DocumentHandler) UploadDocument(w http.ResponseWriter, r *http.Request) {
-	if err := r.ParseMultipartForm(maxMemoryBuffer); err != nil {
+	r.Body = http.MaxBytesReader(w, r.Body, service.MaxUploadSize)
+	if err := r.ParseMultipartForm(maxMemoryBuffer); err != nil { // #nosec G120 — body is bounded by MaxBytesReader above
 		respondError(w, http.StatusBadRequest, "failed to parse multipart form")
 		return
 	}
@@ -149,7 +150,7 @@ func (h *DocumentHandler) GetChapterContent(w http.ResponseWriter, r *http.Reque
 func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	json.NewEncoder(w).Encode(data)
+	_ = json.NewEncoder(w).Encode(data)
 }
 
 // respondError writes a JSON error response with the given status and message.

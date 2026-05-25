@@ -1,8 +1,8 @@
 package repository
 
 import (
-    "fmt"
-    "time"
+	"fmt"
+	"time"
 )
 
 var timeFormats = []string{
@@ -10,8 +10,8 @@ var timeFormats = []string{
 	time.RFC3339,
 	"2006-01-02T15:04:05",
 	"2006-01-02T15:04:05.999999999",
-	"2006-01-02 15:04:05",            // SQLite datetime('now')
-	"2006-01-02 15:04:05.999999999",  // SQLite with fractional seconds
+	"2006-01-02 15:04:05",           // SQLite datetime('now')
+	"2006-01-02 15:04:05.999999999", // SQLite with fractional seconds
 	"2006-01-02 15:04:05Z07:00",
 	"2006-01-02 15:04:05.999999999Z07:00",
 	"2006-01-02 15:04:05 -0700",
@@ -34,21 +34,21 @@ func parseDBTime(raw any) (time.Time, error) {
 		return parseTimeString(v)
 	case []byte:
 		return parseTimeString(string(v))
-    case nil:
-        return time.Time{}, fmt.Errorf("nil time value")
-    default:
-        return time.Time{}, fmt.Errorf("unsupported time value type %T", raw)
-    }
+	case nil:
+		return time.Time{}, fmt.Errorf("nil time value")
+	default:
+		return time.Time{}, fmt.Errorf("unsupported time value type %T", raw)
+	}
 }
 
 func parseTimeString(value string) (time.Time, error) {
-    if value == "" {
-        return time.Time{}, fmt.Errorf("empty time value")
-    }
-    for _, format := range timeFormats {
-        if parsed, err := time.Parse(format, value); err == nil {
-            return parsed, nil
-        }
-    }
-    return time.Time{}, fmt.Errorf("unrecognized time format: %q", value)
+	if value == "" {
+		return time.Time{}, fmt.Errorf("empty time value")
+	}
+	for _, format := range timeFormats {
+		if parsed, err := time.Parse(format, value); err == nil {
+			return parsed, nil
+		}
+	}
+	return time.Time{}, fmt.Errorf("unrecognized time format: %q", value)
 }
