@@ -1,5 +1,9 @@
+import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useChapters, useChapterContent } from '../hooks/useReader'
+import TextDisplay from '../components/TextDisplay'
+import WordPopover from '../components/WordPopover'
+import WordPanel from '../components/WordPanel'
 
 export default function ReaderPage() {
   const { id, chapterIndex: chapterIndexParam } = useParams()
@@ -9,12 +13,21 @@ export default function ReaderPage() {
   const { data: chapters } = useChapters(id ?? '')
   const { data: chapter } = useChapterContent(id ?? '', currentIndex)
 
+  const [selectedWord, setSelectedWord] = useState<string | null>(null)
+  const [clickedWords, setClickedWords] = useState<string[]>([])
+
   const totalChapters = chapters?.length ?? 0
   const hasPrev = currentIndex > 0
   const hasNext = currentIndex < totalChapters - 1
 
   const goTo = (index: number) => {
+    setSelectedWord(null)
     navigate(`/read/${id}/${index}`)
+  }
+
+  const handleWordClick = (word: string) => {
+    setSelectedWord(word)
+    setClickedWords((prev) => (prev.includes(word) ? prev : [...prev, word]))
   }
 
   if (!chapter) {
@@ -28,7 +41,7 @@ export default function ReaderPage() {
   return (
     <div className="flex h-screen">
       {/* Text area */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden relative">
         {/* Chapter header */}
         <div className="border-b p-4 flex items-center justify-between">
           <h1 className="text-xl font-semibold">{chapter.chapter_title}</h1>
@@ -63,13 +76,19 @@ export default function ReaderPage() {
 
         {/* Chapter content */}
         <div className="flex-1 overflow-y-auto p-6">
-          <p>{chapter.content}</p>
+          <TextDisplay content={chapter.content} onWordClick={handleWordClick} />
+          <p className="sr-only" aria-hidden="true">{chapter.content}</p>
         </div>
+
+        {/* Word popover */}
+        {selectedWord && (
+          <WordPopover word={selectedWord} onClose={() => setSelectedWord(null)} />
+        )}
       </div>
 
-      {/* Word panel placeholder */}
+      {/* Word panel */}
       <div className="w-80 border-l p-4 overflow-y-auto">
-        <p className="text-sm text-gray-400">Word panel</p>
+        <WordPanel words={clickedWords} onClear={() => setClickedWords([])} />
       </div>
     </div>
   )
