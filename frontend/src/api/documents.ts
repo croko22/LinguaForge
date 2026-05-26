@@ -1,3 +1,5 @@
+import type { Chapter, ChapterContent } from '../types'
+
 const API_BASE = '/api'
 
 export interface DocumentSummary {
@@ -10,6 +12,8 @@ export interface DocumentSummary {
   chapter_count: number
   created_at: string
 }
+
+export type { Chapter, ChapterContent }
 
 export async function fetchDocuments(): Promise<DocumentSummary[]> {
   const res = await fetch(`${API_BASE}/documents`)
@@ -25,5 +29,17 @@ export async function uploadDocument(file: File): Promise<DocumentSummary> {
     body: formData,
   })
   if (!res.ok) throw new Error('Failed to upload document')
+  return res.json()
+}
+
+export async function fetchChapters(documentId: string): Promise<Chapter[]> {
+  const res = await fetch(`${API_BASE}/documents/${documentId}/chapters`)
+  if (!res.ok) throw new Error('Failed to fetch chapters')
+  return res.json()
+}
+
+export async function fetchChapterContent(documentId: string, chapterIndex: number): Promise<ChapterContent> {
+  const res = await fetch(`${API_BASE}/documents/${documentId}/chapters/${chapterIndex}`)
+  if (!res.ok) throw new Error('Failed to fetch chapter content')
   return res.json()
 }
