@@ -6,6 +6,9 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import ReaderPage from './ReaderPage'
 import * as api from '../api/documents'
 import type { Chapter, ChapterContent } from '../api/documents'
+import TextDisplay from '../components/TextDisplay'
+import WordPopover from '../components/WordPopover'
+import WordPanel from '../components/WordPanel'
 
 vi.mock('../api/documents', () => ({
   fetchDocuments: vi.fn(),
@@ -75,5 +78,58 @@ describe('ReaderPage', () => {
 
     await user.click(await screen.findByRole('button', { name: /next/i }))
     expect(await screen.findByText(/Chapter 1 content/i)).toBeInTheDocument()
+  })
+
+  it('renders TextDisplay with chapter content', async () => {
+    renderWithProviders(<ReaderPage />)
+    expect(await screen.findByText(/first chapter content/i)).toBeInTheDocument()
+  })
+
+  it('clicking a word adds it to the word panel', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ReaderPage />)
+
+    // Click a word in the text
+    const word = await screen.findByText('first')
+    await user.click(word)
+
+    // Word should appear in the panel
+    expect(screen.getByText('first')).toBeInTheDocument()
+  })
+
+  it('shows word popover when clicking a word', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ReaderPage />)
+
+    const word = await screen.findByText('first')
+    await user.click(word)
+
+    // Popover with translate and listen buttons should appear
+    expect(screen.getByRole('button', { name: /translate/i })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /listen/i })).toBeInTheDocument()
+  })
+
+  it('shows word count in panel after clicking words', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ReaderPage />)
+
+    const first = await screen.findByText('first')
+    await user.click(first)
+    const chapter = await screen.findByText('chapter')
+    await user.click(chapter)
+
+    expect(screen.getByText(/2 words/i)).toBeInTheDocument()
+  })
+
+  it('clear button removes all words from panel', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ReaderPage />)
+
+    const word = await screen.findByText('first')
+    await user.click(word)
+    expect(screen.getByText(/1 word/i)).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: /clear/i }))
+    expect(screen.getByText(/click a word/i)).toBeInTheDocument()
   })
 })
