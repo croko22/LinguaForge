@@ -1,9 +1,26 @@
+import { useTranslate } from '../hooks/useTranslate'
+
 interface WordPanelProps {
   words: string[]
   onClear: () => void
+  sourceLang?: string
+  targetLang?: string
 }
 
-export default function WordPanel({ words, onClear }: WordPanelProps) {
+function WordItem({ word, sourceLang, targetLang }: { word: string; sourceLang: string; targetLang: string }) {
+  const { data, isLoading } = useTranslate(word, sourceLang, targetLang)
+
+  return (
+    <li className="text-sm border-b pb-1">
+      <span className="font-medium">{word}</span>
+      <p className="text-xs text-gray-400">
+        {isLoading ? 'Translating...' : data?.translation ?? 'Translation: ...'}
+      </p>
+    </li>
+  )
+}
+
+export default function WordPanel({ words, onClear, sourceLang = 'es', targetLang = 'en' }: WordPanelProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-3">
@@ -25,10 +42,7 @@ export default function WordPanel({ words, onClear }: WordPanelProps) {
       ) : (
         <ul className="space-y-2">
           {words.map((word, idx) => (
-            <li key={`${word}-${idx}`} className="text-sm border-b pb-1">
-              <span className="font-medium">{word}</span>
-              <p className="text-xs text-gray-400">Translation: ...</p>
-            </li>
+            <WordItem key={`${word}-${idx}`} word={word} sourceLang={sourceLang} targetLang={targetLang} />
           ))}
         </ul>
       )}

@@ -93,7 +93,7 @@ export default function ReaderPage() {
 
       {/* Word panel */}
       <div className="w-80 border-l p-4 overflow-y-auto">
-        <WordPanel words={clickedWords} onClear={() => setClickedWords([])} />
+        <WordPanel words={clickedWords} onClear={() => setClickedWords([])} sourceLang="es" targetLang="en" />
       </div>
     </div>
   )
