@@ -1,10 +1,12 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useQueryClient } from '@tanstack/react-query'
 import { useDocuments, useUploadDocument } from '../hooks/useDocuments'
 import UploadDialog from '../components/UploadDialog'
 import type { DocumentSummary } from '../api/documents'
 
 export default function LibraryPage() {
+  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const { data: documents, isLoading } = useDocuments()
   const uploadMutation = useUploadDocument()
@@ -71,7 +73,7 @@ export default function LibraryPage() {
       </div>
       <div className="grid gap-4">
         {documents?.map((doc) => (
-          <DocumentCard key={doc.id} document={doc} />
+          <DocumentCard key={doc.id} document={doc} onClick={() => navigate(`/read/${doc.id}/0`)} />
         ))}
       </div>
       <UploadDialog open={isUploadOpen} onClose={() => setIsUploadOpen(false)} onUpload={handleUpload} />
@@ -79,9 +81,9 @@ export default function LibraryPage() {
   )
 }
 
-function DocumentCard({ document }: { document: DocumentSummary }) {
+function DocumentCard({ document, onClick }: { document: DocumentSummary; onClick: () => void }) {
   return (
-    <div className="border rounded-lg p-4 hover:shadow-md cursor-pointer">
+    <div className="border rounded-lg p-4 hover:shadow-md cursor-pointer" onClick={onClick}>
       <h2 className="font-semibold text-lg">{document.title}</h2>
       <div className="flex gap-2 mt-1 text-sm text-gray-500">
         <span className="uppercase">{document.file_type}</span>

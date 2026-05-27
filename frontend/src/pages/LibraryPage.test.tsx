@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter } from 'react-router-dom'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import LibraryPage from './LibraryPage'
 import * as api from '../api/documents'
 import type { DocumentSummary } from '../api/documents'
@@ -13,6 +13,11 @@ vi.mock('../api/documents', () => ({
   uploadDocument: vi.fn(),
 }))
 
+function LocationDisplay() {
+  const location = useLocation()
+  return <div data-testid="location">{location.pathname}</div>
+}
+
 function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -21,7 +26,13 @@ function renderWithProviders(ui: React.ReactElement) {
   })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>{ui}</MemoryRouter>
+      <MemoryRouter>
+        <Routes>
+          <Route path="/" element={ui} />
+          <Route path="/read/:id/:chapterIndex" element={<div>Reader Page</div>} />
+        </Routes>
+        <LocationDisplay />
+      </MemoryRouter>
     </QueryClientProvider>,
   )
 }
@@ -139,5 +150,28 @@ describe('LibraryPage', () => {
       expect(screen.queryByText(/upload epub/i)).not.toBeInTheDocument()
     })
     expect(await screen.findByText('Uploaded Book')).toBeInTheDocument()
+  })
+
+  it('navigates to reader when clicking a document card', async () => {
+    const user = userEvent.setup()
+    const mockDocs: DocumentSummary[] = [
+      {
+        id: 'book-1',
+        title: 'Economics 101',
+        file_type: 'epub',
+        file_size: 2048,
+        status: 'ready',
+        language: 'en',
+        chapter_count: 72,
+        created_at: '2026-01-01T00:00:00Z',
+      },
+    ]
+    vi.mocked(api.fetchDocuments).mockResolvedValue(mockDocs)
+
+    renderWithProviders(<LibraryPage />)
+
+    await user.click(await screen.findByText('Economics 101'))
+
+    expect(screen.getByTestId('location').textContent).toBe('/read/book-1/0')
   })
 })
