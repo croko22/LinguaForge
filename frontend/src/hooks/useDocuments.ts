@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { fetchDocuments, uploadDocument, DocumentSummary } from '../api/documents'
+import { fetchDocuments, uploadDocument } from '../api/documents'
 
 export function useDocuments() {
   return useQuery({
