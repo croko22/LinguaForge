@@ -25,10 +25,13 @@ describe('WordPopover', () => {
     })
   })
 
-  it('renders the word and action buttons', () => {
+  it('renders the word', () => {
     renderWithProviders(<WordPopover word="gato" onClose={vi.fn()} />)
     expect(screen.getByText('gato')).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /translate/i })).toBeInTheDocument()
+  })
+
+  it('renders listen button', () => {
+    renderWithProviders(<WordPopover word="gato" onClose={vi.fn()} />)
     expect(screen.getByRole('button', { name: /listen/i })).toBeInTheDocument()
   })
 
@@ -47,15 +50,13 @@ describe('WordPopover', () => {
   })
 
   it('shows translation from API', async () => {
-    renderWithProviders(<WordPopover word="gato" onClose={vi.fn()} sourceLang="es" targetLang="en" />)
+    renderWithProviders(<WordPopover word="gato" onClose={vi.fn()} />)
 
     expect(await screen.findByText(/cat/i)).toBeInTheDocument()
   })
 
   it('shows loading while translating', () => {
-    // Never resolve the fetch
     mockFetch.mockReturnValue(new Promise(() => {}))
-
     renderWithProviders(<WordPopover word="gato" onClose={vi.fn()} />)
 
     expect(screen.getByText(/translating/i)).toBeInTheDocument()

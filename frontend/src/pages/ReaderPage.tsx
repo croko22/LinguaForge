@@ -26,8 +26,10 @@ export default function ReaderPage() {
   }
 
   const handleWordClick = (word: string) => {
-    setSelectedWord(word)
-    setClickedWords((prev) => (prev.includes(word) ? prev : [...prev, word]))
+    const clean = word.replace(/^[^\w]+|[^\w]+$/g, '')
+    if (!clean) return
+    setSelectedWord(clean)
+    setClickedWords((prev) => (prev.includes(clean) ? prev : [...prev, clean]))
   }
 
   if (!chapter) {

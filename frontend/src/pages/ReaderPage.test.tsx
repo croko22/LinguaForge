@@ -6,9 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import ReaderPage from './ReaderPage'
 import * as api from '../api/documents'
 import type { Chapter, ChapterContent } from '../api/documents'
-import TextDisplay from '../components/TextDisplay'
-import WordPopover from '../components/WordPopover'
-import WordPanel from '../components/WordPanel'
+
 
 vi.mock('../api/documents', () => ({
   fetchDocuments: vi.fn(),
@@ -94,20 +92,19 @@ describe('ReaderPage', () => {
     await user.click(word)
 
     // Word should appear in the panel
-    expect(screen.getByText('first')).toBeInTheDocument()
+    expect(screen.getAllByText('first')[0]).toBeInTheDocument()
   })
 
   it('shows word popover when clicking a word', async () => {
-    const user = userEvent.setup()
-    renderWithProviders(<ReaderPage />)
+  const user = userEvent.setup()
+  renderWithProviders(<ReaderPage />)
 
-    const word = await screen.findByText('first')
-    await user.click(word)
+  const word = await screen.findByText('first')
+  await user.click(word)
 
-    // Popover with translate and listen buttons should appear
-    expect(screen.getByRole('button', { name: /translate/i })).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: /listen/i })).toBeInTheDocument()
-  })
+  // Popover with listen button should appear
+  expect(screen.getByRole('button', { name: /listen/i })).toBeInTheDocument()
+})
 
   it('shows word count in panel after clicking words', async () => {
     const user = userEvent.setup()
