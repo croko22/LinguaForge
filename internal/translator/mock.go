@@ -6,13 +6,13 @@ import (
 	"strings"
 )
 
-type mockTranslator struct {
+type MockTranslator struct {
 	// Simple embedded dictionary for realistic-looking translations
 	dict map[string]string
 }
 
 func NewMockTranslator() Translator {
-	return &mockTranslator{
+	return &MockTranslator{
 		dict: map[string]string{
 			"hello":      "hola",
 			"world":      "mundo",
@@ -44,7 +44,7 @@ func NewMockTranslator() Translator {
 	}
 }
 
-func (m *mockTranslator) Translate(ctx context.Context, req TranslateRequest) (*TranslateResponse, error) {
+func (m *MockTranslator) Translate(ctx context.Context, req TranslateRequest) (*TranslateResponse, error) {
 	if req.Word == "" {
 		return nil, fmt.Errorf("word cannot be empty")
 	}

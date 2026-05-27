@@ -11,8 +11,8 @@ import (
 )
 
 func TestTranslateHandler_ValidWord(t *testing.T) {
-	mockTrans := translator.NewMockTranslator()
-	h := NewTranslateHandler(mockTrans)
+	provider := translator.NewProvider(translator.DefaultSettings())
+	h := NewTranslateHandler(provider)
 
 	body := `{"word":"hello","source_lang":"en","target_lang":"es"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/translate", strings.NewReader(body))
@@ -36,8 +36,8 @@ func TestTranslateHandler_ValidWord(t *testing.T) {
 }
 
 func TestTranslateHandler_EmptyWord(t *testing.T) {
-	mockTrans := translator.NewMockTranslator()
-	h := NewTranslateHandler(mockTrans)
+	provider := translator.NewProvider(translator.DefaultSettings())
+	h := NewTranslateHandler(provider)
 
 	body := `{"word":"","source_lang":"en","target_lang":"es"}`
 	req := httptest.NewRequest(http.MethodPost, "/api/translate", strings.NewReader(body))
@@ -52,8 +52,8 @@ func TestTranslateHandler_EmptyWord(t *testing.T) {
 }
 
 func TestTranslateHandler_InvalidJSON(t *testing.T) {
-	mockTrans := translator.NewMockTranslator()
-	h := NewTranslateHandler(mockTrans)
+	provider := translator.NewProvider(translator.DefaultSettings())
+	h := NewTranslateHandler(provider)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/translate", strings.NewReader("not json"))
 	req.Header.Set("Content-Type", "application/json")

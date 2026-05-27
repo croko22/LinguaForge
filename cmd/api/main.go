@@ -53,8 +53,10 @@ func main() {
 	epubParser := parser.NewEpubParser()
 	docService := service.NewDocumentService(docRepo, chRepo, fileStorage, epubParser)
 	docHandler := handler.NewDocumentHandler(docService)
-	trans := translator.NewMockTranslator()
-	transHandler := handler.NewTranslateHandler(trans)
+	transSettings := translator.DefaultSettings()
+	transProvider := translator.NewProvider(transSettings)
+	transHandler := handler.NewTranslateHandler(transProvider)
+	settingsHandler := handler.NewSettingsHandler(transProvider)
 
 	// 5. Setup chi router
 	r := chi.NewRouter()
@@ -64,6 +66,8 @@ func main() {
 
 	docHandler.RegisterRoutes(r)
 	r.Post("/api/translate", transHandler.Translate)
+	r.Get("/api/settings", settingsHandler.GetSettings)
+	r.Put("/api/settings", settingsHandler.UpdateSettings)
 
 	// 6. Health check
 	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
