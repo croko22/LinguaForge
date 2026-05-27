@@ -3,12 +3,13 @@ import { useTranslate } from '../hooks/useTranslate'
 
 interface WordPopoverProps {
   word: string | null
+  position: { x: number; y: number }
   onClose: () => void
   sourceLang?: string
   targetLang?: string
 }
 
-export default function WordPopover({ word, onClose, sourceLang = 'es', targetLang = 'en' }: WordPopoverProps) {
+export default function WordPopover({ word, position, onClose, sourceLang = 'es', targetLang = 'en' }: WordPopoverProps) {
   const ref = useRef<HTMLDivElement>(null)
   const { data, isLoading } = useTranslate(word ?? '', sourceLang, targetLang)
 
@@ -41,7 +42,11 @@ export default function WordPopover({ word, onClose, sourceLang = 'es', targetLa
   if (!word) return null
 
   return (
-    <div ref={ref} className="absolute z-50 bg-white border rounded-lg shadow-lg p-4 min-w-[220px] -translate-x-1/2 mt-2">
+    <div
+      ref={ref}
+      style={{ left: position.x, top: position.y }}
+      className="fixed z-50 bg-white border rounded-lg shadow-lg p-4 min-w-[200px] -translate-x-1/2"
+    >
       {/* Word */}
       <p className="font-semibold text-lg mb-1">{word}</p>
 

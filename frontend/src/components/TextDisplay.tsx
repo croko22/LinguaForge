@@ -1,6 +1,8 @@
+import { type MouseEvent } from 'react'
+
 interface TextDisplayProps {
   content: string
-  onWordClick: (word: string) => void
+  onWordClick: (word: string, e: MouseEvent<HTMLSpanElement>) => void
 }
 
 function splitIntoWords(text: string): string[] {
@@ -21,7 +23,7 @@ export default function TextDisplay({ content, onWordClick }: TextDisplayProps) 
           {splitIntoWords(para).map((word, wIdx) => (
             <span
               key={`${pIdx}-${wIdx}`}
-              onClick={() => onWordClick(word)}
+              onClick={(e) => onWordClick(word, e)}
               className="cursor-pointer hover:bg-yellow-100 rounded px-0.5 transition-colors"
             >
               {word}{' '}

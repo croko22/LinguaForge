@@ -17,7 +17,7 @@ describe('TextDisplay', () => {
     render(<TextDisplay content="Hello world" onWordClick={onWordClick} />)
 
     await user.click(screen.getByText('world'))
-    expect(onWordClick).toHaveBeenCalledWith('world')
+    expect(onWordClick).toHaveBeenCalledWith('world', expect.any(Object))
   })
 
   it('preserves paragraph structure with double newlines', () => {

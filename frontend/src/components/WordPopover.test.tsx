@@ -7,6 +7,8 @@ import WordPopover from './WordPopover'
 const mockFetch = vi.fn()
 vi.stubGlobal('fetch', mockFetch)
 
+const pos = { x: 100, y: 200 }
+
 function renderWithProviders(ui: React.ReactElement) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
@@ -26,38 +28,38 @@ describe('WordPopover', () => {
   })
 
   it('renders the word', () => {
-    renderWithProviders(<WordPopover word="gato" onClose={vi.fn()} />)
+    renderWithProviders(<WordPopover word="gato" position={pos} onClose={vi.fn()} />)
     expect(screen.getByText('gato')).toBeInTheDocument()
   })
 
   it('renders listen button', () => {
-    renderWithProviders(<WordPopover word="gato" onClose={vi.fn()} />)
+    renderWithProviders(<WordPopover word="gato" position={pos} onClose={vi.fn()} />)
     expect(screen.getByRole('button', { name: /listen/i })).toBeInTheDocument()
   })
 
   it('hides when word is null', () => {
-    const { container } = renderWithProviders(<WordPopover word={null} onClose={vi.fn()} />)
+    const { container } = renderWithProviders(<WordPopover word={null} position={pos} onClose={vi.fn()} />)
     expect(container.firstChild).toBeNull()
   })
 
   it('calls onClose when clicking outside the popover', async () => {
     const user = userEvent.setup()
     const onClose = vi.fn()
-    renderWithProviders(<WordPopover word="gato" onClose={onClose} />)
+    renderWithProviders(<WordPopover word="gato" position={pos} onClose={onClose} />)
 
     await user.click(document.body)
     expect(onClose).toHaveBeenCalled()
   })
 
   it('shows translation from API', async () => {
-    renderWithProviders(<WordPopover word="gato" onClose={vi.fn()} />)
+    renderWithProviders(<WordPopover word="gato" position={pos} onClose={vi.fn()} />)
 
     expect(await screen.findByText(/cat/i)).toBeInTheDocument()
   })
 
   it('shows loading while translating', () => {
     mockFetch.mockReturnValue(new Promise(() => {}))
-    renderWithProviders(<WordPopover word="gato" onClose={vi.fn()} />)
+    renderWithProviders(<WordPopover word="gato" position={pos} onClose={vi.fn()} />)
 
     expect(screen.getByText(/translating/i)).toBeInTheDocument()
   })

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, type MouseEvent } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useChapters, useChapterContent } from '../hooks/useReader'
 import TextDisplay from '../components/TextDisplay'
@@ -14,6 +14,7 @@ export default function ReaderPage() {
   const { data: chapter } = useChapterContent(id ?? '', currentIndex)
 
   const [selectedWord, setSelectedWord] = useState<string | null>(null)
+  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null)
   const [clickedWords, setClickedWords] = useState<string[]>([])
 
   const totalChapters = chapters?.length ?? 0
@@ -25,9 +26,11 @@ export default function ReaderPage() {
     navigate(`/read/${id}/${index}`)
   }
 
-  const handleWordClick = (word: string) => {
+  const handleWordClick = (word: string, e: MouseEvent<HTMLSpanElement>) => {
     const clean = word.replace(/^[^\w]+|[^\w]+$/g, '')
     if (!clean) return
+    const rect = (e.target as HTMLElement).getBoundingClientRect()
+    setPopoverPos({ x: rect.left + rect.width / 2, y: rect.bottom + 4 })
     setSelectedWord(clean)
     setClickedWords((prev) => (prev.includes(clean) ? prev : [...prev, clean]))
   }
@@ -83,8 +86,8 @@ export default function ReaderPage() {
         </div>
 
         {/* Word popover */}
-        {selectedWord && (
-          <WordPopover word={selectedWord} onClose={() => setSelectedWord(null)} />
+        {selectedWord && popoverPos && (
+          <WordPopover word={selectedWord} position={popoverPos} onClose={() => { setSelectedWord(null); setPopoverPos(null); }} />
         )}
       </div>
 
