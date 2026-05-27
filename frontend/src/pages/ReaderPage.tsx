@@ -30,7 +30,7 @@ export default function ReaderPage() {
     setClickedWords((prev) => (prev.includes(word) ? prev : [...prev, word]))
   }
 
-  if (!chapter) {
+  if (!chapter || !chapter.content) {
     return (
       <div className="flex h-screen items-center justify-center">
         <p className="text-gray-500">Loading...</p>

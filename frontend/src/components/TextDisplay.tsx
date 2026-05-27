@@ -8,7 +8,7 @@ function splitIntoWords(text: string): string[] {
 }
 
 export default function TextDisplay({ content, onWordClick }: TextDisplayProps) {
-  const paragraphs = content.split(/\n\n+/).filter(Boolean)
+  const paragraphs = (content ?? '').split(/\n\n+/).filter(Boolean)
 
   if (paragraphs.length === 0) {
     return <p className="text-gray-400">No content</p>
