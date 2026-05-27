@@ -24,7 +24,7 @@ type Chapter struct {
 	DocumentID   string    `json:"document_id"`
 	ChapterIndex int       `json:"chapter_index"`
 	ChapterTitle string    `json:"chapter_title"`
-	Content      string    `json:"content,omitempty"`
+	Content      string    `json:"content"`
 	TokenCount   int       `json:"token_count"`
 	CreatedAt    time.Time `json:"created_at"`
 }
