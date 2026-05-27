@@ -21,6 +21,7 @@ import (
 	"github.com/croko/language-app/internal/repository"
 	"github.com/croko/language-app/internal/service"
 	"github.com/croko/language-app/internal/storage"
+	"github.com/croko/language-app/internal/translator"
 )
 
 func main() {
@@ -52,6 +53,8 @@ func main() {
 	epubParser := parser.NewEpubParser()
 	docService := service.NewDocumentService(docRepo, chRepo, fileStorage, epubParser)
 	docHandler := handler.NewDocumentHandler(docService)
+	trans := translator.NewMockTranslator()
+	transHandler := handler.NewTranslateHandler(trans)
 
 	// 5. Setup chi router
 	r := chi.NewRouter()
@@ -60,6 +63,7 @@ func main() {
 	r.Use(middleware.Timeout(30 * time.Second))
 
 	docHandler.RegisterRoutes(r)
+	r.Post("/api/translate", transHandler.Translate)
 
 	// 6. Health check
 	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {
