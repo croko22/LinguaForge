@@ -11,7 +11,7 @@ interface WordPopoverProps {
 
 export default function WordPopover({ word, position, onClose, sourceLang = 'es', targetLang = 'en' }: WordPopoverProps) {
   const ref = useRef<HTMLDivElement>(null)
-  const { data, isLoading } = useTranslate(word ?? '', sourceLang, targetLang)
+  const { data, isLoading, isError } = useTranslate(word ?? '', sourceLang, targetLang)
 
   useEffect(() => {
     if (!word) return
@@ -54,6 +54,8 @@ export default function WordPopover({ word, position, onClose, sourceLang = 'es'
       <p className="text-sm mb-3">
         {isLoading ? (
           <span className="text-gray-400 italic">Translating...</span>
+        ) : isError ? (
+          <span className="text-red-500 text-xs">Translation failed</span>
         ) : data?.translation ? (
           <span className="text-blue-700 font-medium">{data.translation}</span>
         ) : (

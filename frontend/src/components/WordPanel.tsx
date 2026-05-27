@@ -8,13 +8,13 @@ interface WordPanelProps {
 }
 
 function WordItem({ word, sourceLang, targetLang }: { word: string; sourceLang: string; targetLang: string }) {
-  const { data, isLoading } = useTranslate(word, sourceLang, targetLang)
+  const { data, isLoading, isError } = useTranslate(word, sourceLang, targetLang)
 
   return (
     <li className="text-sm border-b pb-1">
       <span className="font-medium">{word}</span>
       <p className="text-xs text-gray-400">
-        {isLoading ? 'Translating...' : data?.translation ?? 'Translation: ...'}
+        {isLoading ? 'Translating...' : isError ? 'Error' : data?.translation ?? 'Translation: ...'}
       </p>
     </li>
   )
