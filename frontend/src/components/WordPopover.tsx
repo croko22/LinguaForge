@@ -1,17 +1,42 @@
-import { useEffect, useRef, useCallback } from 'react'
-import { useTranslate } from '../hooks/useTranslate'
+import { useEffect, useRef, useState, useCallback } from 'react'
 
 interface WordPopoverProps {
   word: string | null
   position: { x: number; y: number }
   onClose: () => void
-  sourceLang?: string
-  targetLang?: string
 }
 
-export default function WordPopover({ word, position, onClose, sourceLang = 'es', targetLang = 'en' }: WordPopoverProps) {
+export default function WordPopover({ word, position, onClose }: WordPopoverProps) {
   const ref = useRef<HTMLDivElement>(null)
-  const { data, isLoading, isError } = useTranslate(word ?? '', sourceLang, targetLang)
+  const [translation, setTranslation] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
+
+  useEffect(() => {
+    if (!word) return
+    setLoading(true)
+    setError(false)
+    setTranslation(null)
+
+    fetch('/api/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ word, source_lang: 'en', target_lang: 'es' }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error('HTTP ' + res.status)
+        return res.json()
+      })
+      .then((data) => {
+        setTranslation(data.translation)
+        setLoading(false)
+      })
+      .catch((err) => {
+        console.error('[WordPopover] fetch error:', err)
+        setError(true)
+        setLoading(false)
+      })
+  }, [word])
 
   useEffect(() => {
     if (!word) return
@@ -35,9 +60,9 @@ export default function WordPopover({ word, position, onClose, sourceLang = 'es'
   const handleListen = useCallback(() => {
     if (!word) return
     const utterance = new SpeechSynthesisUtterance(word)
-    utterance.lang = sourceLang
+    utterance.lang = 'en'
     speechSynthesis.speak(utterance)
-  }, [word, sourceLang])
+  }, [word])
 
   if (!word) return null
 
@@ -47,23 +72,18 @@ export default function WordPopover({ word, position, onClose, sourceLang = 'es'
       style={{ left: position.x, top: position.y }}
       className="fixed z-50 bg-white border rounded-lg shadow-lg p-4 min-w-[200px] -translate-x-1/2"
     >
-      {/* Word */}
       <p className="font-semibold text-lg mb-1">{word}</p>
-
-      {/* Translation */}
       <p className="text-sm mb-3">
-        {isLoading ? (
+        {loading ? (
           <span className="text-gray-400 italic">Translating...</span>
-        ) : isError ? (
+        ) : error ? (
           <span className="text-red-500 text-xs">Translation failed</span>
-        ) : data?.translation ? (
-          <span className="text-blue-700 font-medium">{data.translation}</span>
+        ) : translation ? (
+          <span className="text-blue-700 font-medium">{translation}</span>
         ) : (
           <span className="text-gray-400">Translation: ...</span>
         )}
       </p>
-
-      {/* Actions */}
       <div className="flex gap-2">
         <button
           onClick={handleListen}
