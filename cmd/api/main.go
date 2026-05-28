@@ -55,7 +55,7 @@ func main() {
 	docHandler := handler.NewDocumentHandler(docService)
 	transSettings := translator.DefaultSettings()
 	transProvider := translator.NewProvider(transSettings)
-	transHandler := handler.NewTranslateHandler(transProvider)
+	transHandler := handler.NewTranslateHandler(translator.NewCachedTranslator(transProvider))
 	settingsHandler := handler.NewSettingsHandler(transProvider)
 
 	// 5. Setup chi router

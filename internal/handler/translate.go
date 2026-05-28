@@ -8,11 +8,11 @@ import (
 )
 
 type TranslateHandler struct {
-	provider *translator.Provider
+	translator translator.Translator
 }
 
-func NewTranslateHandler(provider *translator.Provider) *TranslateHandler {
-	return &TranslateHandler{provider: provider}
+func NewTranslateHandler(t translator.Translator) *TranslateHandler {
+	return &TranslateHandler{translator: t}
 }
 
 func (h *TranslateHandler) Translate(w http.ResponseWriter, r *http.Request) {
@@ -27,8 +27,7 @@ func (h *TranslateHandler) Translate(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	t := h.provider.GetTranslator()
-	result, err := t.Translate(r.Context(), req)
+	result, err := h.translator.Translate(r.Context(), req)
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "translation failed")
 		return

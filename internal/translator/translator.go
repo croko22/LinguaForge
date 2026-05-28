@@ -51,6 +51,10 @@ func NewProvider(settings *Settings) *Provider {
 }
 
 // GetTranslator returns the currently active Translator.
+func (p *Provider) Translate(ctx context.Context, req TranslateRequest) (*TranslateResponse, error) {
+	return p.GetTranslator().Translate(ctx, req)
+}
+
 func (p *Provider) GetTranslator() Translator {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
