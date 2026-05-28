@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { API_BASE } from '../api/config'
 
 interface WordPanelProps {
   words: string[]
@@ -9,7 +10,7 @@ function WordItem({ word }: { word: string }) {
   const [translation, setTranslation] = useState<string | null>(null)
 
   useEffect(() => {
-    fetch('/api/translate', {
+    fetch(`${API_BASE}/translate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ word, source_lang: 'en', target_lang: 'es' }),

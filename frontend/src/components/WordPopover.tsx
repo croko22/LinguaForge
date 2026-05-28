@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { API_BASE } from '../api/config'
 
 interface WordPopoverProps {
   word: string | null
@@ -18,7 +19,7 @@ export default function WordPopover({ word, position, onClose }: WordPopoverProp
     setError(false)
     setTranslation(null)
 
-    fetch('/api/translate', {
+    fetch(`${API_BASE}/translate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ word, source_lang: 'en', target_lang: 'es' }),

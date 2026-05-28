@@ -28,3 +28,8 @@ Thumbs.db
 # Project
 /uploads/
 /tmp/
+
+# Frontend
+frontend/dist/
+frontend/node_modules/
+build/
