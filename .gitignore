@@ -28,8 +28,15 @@ Thumbs.db
 # Project
 /uploads/
 /tmp/
+/api
+/language-app.db
+
+# Frontend leftovers
+frontend/wailsjs/
 
 # Frontend
 frontend/dist/
 frontend/node_modules/
 build/
+# Local Pi runtime state
+.atl/

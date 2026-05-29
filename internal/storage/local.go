@@ -7,6 +7,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 
 	"github.com/google/uuid"
 )
@@ -86,5 +87,5 @@ func isWithin(base, target string) bool {
 	if err != nil {
 		return false
 	}
-	return rel != ".." && !path.IsAbs(rel) && len(rel) > 0
+	return !strings.HasPrefix(rel, "..") && !path.IsAbs(rel) && len(rel) > 0
 }

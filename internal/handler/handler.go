@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 
@@ -150,7 +151,9 @@ func (h *DocumentHandler) GetChapterContent(w http.ResponseWriter, r *http.Reque
 func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(data)
+	if err := json.NewEncoder(w).Encode(data); err != nil {
+		log.Printf("respondJSON: encode error: %v", err)
+	}
 }
 
 // respondError writes a JSON error response with the given status and message.
