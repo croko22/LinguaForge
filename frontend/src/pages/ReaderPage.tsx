@@ -82,7 +82,6 @@ export default function ReaderPage() {
         {/* Chapter content */}
         <div className="flex-1 overflow-y-auto p-6">
           <TextDisplay content={chapter.content} onWordClick={handleWordClick} />
-          <p className="sr-only" aria-hidden="true">{chapter.content}</p>
         </div>
 
         {/* Word popover */}

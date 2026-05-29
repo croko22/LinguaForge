@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { API_BASE } from '../api/config'
+import { useEffect, useRef, useCallback } from 'react'
+import { useTranslate } from '../hooks/useTranslate'
 
 interface WordPopoverProps {
   word: string | null
@@ -9,35 +9,7 @@ interface WordPopoverProps {
 
 export default function WordPopover({ word, position, onClose }: WordPopoverProps) {
   const ref = useRef<HTMLDivElement>(null)
-  const [translation, setTranslation] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(false)
-
-  useEffect(() => {
-    if (!word) return
-    setLoading(true)
-    setError(false)
-    setTranslation(null)
-
-    fetch(`${API_BASE}/translate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ word, source_lang: 'en', target_lang: 'es' }),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('HTTP ' + res.status)
-        return res.json()
-      })
-      .then((data) => {
-        setTranslation(data.translation)
-        setLoading(false)
-      })
-      .catch((err) => {
-        console.error('[WordPopover] fetch error:', err)
-        setError(true)
-        setLoading(false)
-      })
-  }, [word])
+  const { data, isLoading, isError } = useTranslate(word ?? '', 'en', 'es')
 
   useEffect(() => {
     if (!word) return
@@ -75,12 +47,12 @@ export default function WordPopover({ word, position, onClose }: WordPopoverProp
     >
       <p className="font-semibold text-lg mb-1">{word}</p>
       <p className="text-sm mb-3">
-        {loading ? (
+        {isLoading ? (
           <span className="text-gray-400 italic">Translating...</span>
-        ) : error ? (
+        ) : isError ? (
           <span className="text-red-500 text-xs">Translation failed</span>
-        ) : translation ? (
-          <span className="text-blue-700 font-medium">{translation}</span>
+        ) : data?.translation ? (
+          <span className="text-blue-700 font-medium">{data.translation}</span>
         ) : (
           <span className="text-gray-400">Translation: ...</span>
         )}
