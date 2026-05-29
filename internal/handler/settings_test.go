@@ -66,6 +66,29 @@ func TestSettingsHandler_UpdateSettings(t *testing.T) {
 	}
 }
 
+func TestSettingsHandler_UpdateSettings_InvalidProvider(t *testing.T) {
+	settings := translator.DefaultSettings()
+	provider := translator.NewProvider(settings)
+	h := NewSettingsHandler(provider)
+
+	body := `{"active_provider":"nonexistent","providers":[{"name":"mock"},{"name":"libre"}]}`
+	req := httptest.NewRequest(http.MethodPut, "/api/settings", strings.NewReader(body))
+	req.Header.Set("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+
+	h.UpdateSettings(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400 for unknown provider, got %d: %s", w.Code, w.Body.String())
+	}
+
+	// Verify settings were NOT changed
+	updated := provider.GetSettings()
+	if updated.ActiveProvider != "mock" {
+		t.Fatalf("expected active_provider to remain 'mock', got '%s'", updated.ActiveProvider)
+	}
+}
+
 func TestSettingsHandler_UpdateSettings_InvalidJSON(t *testing.T) {
 	settings := translator.DefaultSettings()
 	provider := translator.NewProvider(settings)
