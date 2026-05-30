@@ -1,4 +1,5 @@
-import { useTranslate } from '../hooks/useTranslate'
+import { useState, useEffect } from 'react'
+import { API_BASE } from '../api/config'
 
 interface WordPanelProps {
   words: string[]
@@ -6,14 +7,23 @@ interface WordPanelProps {
 }
 
 function WordItem({ word }: { word: string }) {
-  const { data, isLoading } = useTranslate(word, 'en', 'es')
+  const [translation, setTranslation] = useState<string | null>(null)
 
-  const label = isLoading ? 'Translating...' : data?.translation ?? 'Translating...'
+  useEffect(() => {
+    fetch(`${API_BASE}/translate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ word, source_lang: 'en', target_lang: 'es' }),
+    })
+      .then((r) => r.json())
+      .then((data) => setTranslation(data.translation))
+      .catch(() => {})
+  }, [word])
 
   return (
     <li className="text-sm border-b pb-1">
       <span className="font-medium">{word}</span>
-      <p className="text-xs text-gray-400">{label}</p>
+      <p className="text-xs text-gray-400">{translation ?? 'Translating...'}</p>
     </li>
   )
 }

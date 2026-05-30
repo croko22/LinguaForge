@@ -1,9 +1,10 @@
-import { useState, type MouseEvent } from "react";
+import { useState, useEffect, type MouseEvent } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useChapters, useChapterContent } from "../hooks/useReader";
 import TextDisplay from "../components/TextDisplay";
 import WordPopover from "../components/WordPopover";
 import WordPanel from "../components/WordPanel";
+import { loadWords, saveWord } from "../api/words";
 
 export default function ReaderPage() {
 	const { id, chapterIndex: chapterIndexParam } = useParams();
@@ -18,6 +19,12 @@ export default function ReaderPage() {
 		null,
 	);
 	const [clickedWords, setClickedWords] = useState<string[]>([]);
+
+	useEffect(() => {
+		loadWords().then(words => {
+			setClickedWords(words.map(w => w.word))
+		}).catch(() => {})
+	}, [])
 
 	const totalChapters = chapters?.length ?? 0;
 	const hasPrev = currentIndex > 0;
@@ -35,6 +42,9 @@ export default function ReaderPage() {
 		setPopoverPos({ x: rect.left + rect.width / 2, y: rect.bottom + 4 });
 		setSelectedWord(clean);
 		setClickedWords((prev) => (prev.includes(clean) ? prev : [...prev, clean]));
+
+		// Save to backend (async, non-blocking)
+		saveWord(clean, "", id ?? "");
 	};
 
 	if (!chapter) {

@@ -2,10 +2,14 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
 import ReaderPage from './ReaderPage'
 import * as api from '../api/documents'
 import type { Chapter, ChapterContent } from '../api/documents'
+
+// Mock global fetch for WordPopover / words API
+const mockFetch = vi.fn()
+vi.stubGlobal('fetch', mockFetch)
 
 
 vi.mock('../api/documents', () => ({
@@ -46,6 +50,9 @@ describe('ReaderPage', () => {
     vi.clearAllMocks()
     vi.mocked(api.fetchChapters).mockResolvedValue(mockChapters)
     vi.mocked(api.fetchChapterContent).mockResolvedValue(mockContent)
+    mockFetch
+      .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) })
+      .mockResolvedValue({ ok: true, json: () => Promise.resolve({ translation: 'test' }) })
   })
 
   it('renders the document title as heading', async () => {
@@ -55,7 +62,10 @@ describe('ReaderPage', () => {
 
   it('renders chapter content text', async () => {
     renderWithProviders(<ReaderPage />)
-    expect(await screen.findByText(/this is the first chapter content/i)).toBeInTheDocument()
+    // TextDisplay splits into word spans; check that individual words are rendered
+    expect(await screen.findByText('first')).toBeInTheDocument()
+    expect(await screen.findByText('chapter')).toBeInTheDocument()
+    expect(await screen.findByText('content.')).toBeInTheDocument()
   })
 
   it('renders chapter navigation with prev/next buttons', async () => {
@@ -76,11 +86,6 @@ describe('ReaderPage', () => {
 
     await user.click(await screen.findByRole('button', { name: /next/i }))
     expect(await screen.findByText(/Chapter 1 content/i)).toBeInTheDocument()
-  })
-
-  it('renders TextDisplay with chapter content', async () => {
-    renderWithProviders(<ReaderPage />)
-    expect(await screen.findByText(/first chapter content/i)).toBeInTheDocument()
   })
 
   it('clicking a word adds it to the word panel', async () => {
