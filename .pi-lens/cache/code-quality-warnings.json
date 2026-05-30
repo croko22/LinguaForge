@@ -1,0 +1,58 @@
+{
+  "generatedAt": "2026-05-29T22:52:38.228Z",
+  "scope": "turn_delta",
+  "sessionId": "lens-mprh0pfu-11779885",
+  "turnIndex": 100,
+  "projectSeqStart": 15,
+  "projectSeqEnd": 16,
+  "deltaOnly": true,
+  "files": [
+    {
+      "filePath": "/home/croko/CODE/projects/language-app/cmd/api/main.go",
+      "displayPath": "cmd/api/main.go",
+      "fileSeq": 1,
+      "warnings": [
+        {
+          "id": "cq:fdb3ed7d26",
+          "filePath": "/home/croko/CODE/projects/language-app/cmd/api/main.go",
+          "displayPath": "cmd/api/main.go",
+          "line": 96,
+          "column": 39,
+          "severity": "warning",
+          "tool": "tree-sitter",
+          "rule": "go-context-background-handler",
+          "message": "context.Background() in handler — use the request context (r.Context()) to propagate cancellation",
+          "category": "other",
+          "origin": "dispatch"
+        },
+        {
+          "id": "cq:371a8e94d4",
+          "filePath": "/home/croko/CODE/projects/language-app/cmd/api/main.go",
+          "displayPath": "cmd/api/main.go",
+          "line": 98,
+          "column": 4,
+          "severity": "warning",
+          "tool": "tree-sitter",
+          "rule": "go-ignored-call-result",
+          "message": "Call result assigned to '_' — verify this discard is intentional",
+          "category": "other",
+          "origin": "dispatch"
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "warnings": 2,
+    "files": 1,
+    "topRules": [
+      {
+        "rule": "go-context-background-handler",
+        "count": 1
+      },
+      {
+        "rule": "go-ignored-call-result",
+        "count": 1
+      }
+    ]
+  }
+}
