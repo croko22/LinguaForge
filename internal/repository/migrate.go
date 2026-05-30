@@ -9,12 +9,17 @@ import (
 //go:embed 001_initial.sql
 var migration001 string
 
+//go:embed 002_words.sql
+var migration002 string
+
 // RunMigrations executes all pending database migrations.
 // Idempotent — safe to call multiple times (all statements use IF NOT EXISTS).
 func RunMigrations(db *sql.DB) error {
-	_, err := db.Exec(migration001)
-	if err != nil {
+	if _, err := db.Exec(migration001); err != nil {
 		return fmt.Errorf("migration 001: %w", err)
+	}
+	if _, err := db.Exec(migration002); err != nil {
+		return fmt.Errorf("migration 002: %w", err)
 	}
 	return nil
 }
