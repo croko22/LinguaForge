@@ -1,6 +1,0 @@
-{
-  "signature": "cmd/api/main.go::ℹ️ Advisory — no action required this turn:\nCode-quality warnings introduced/touched this turn: 2 across 1 file(s).\nTop rules: go-context-background-handler×1, go-ignored-call-result×1\nDetails written to .pi-lens/cache/code-quality-warnings.json\nNo action required unless you are already refactoring these areas.",
-  "sessionId": "lens-mprh0pfu-11779885",
-  "projectSeqStart": 15,
-  "projectSeqEnd": 16
-}

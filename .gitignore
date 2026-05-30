@@ -40,3 +40,9 @@ frontend/node_modules/
 build/
 # Local Pi runtime state
 .atl/
+
+# AI tools cache
+.pi-lens/
+.pi/
+*.pi-lens/
+frontend/package.json.md5
