@@ -30,7 +30,7 @@ function LibraryHeader({
 export default function LibraryPage() {
 	const navigate = useNavigate();
 	const queryClient = useQueryClient();
-	const { data: documents, isLoading } = useDocuments();
+	const { data: documents, isLoading, isError, refetch } = useDocuments();
 	const uploadMutation = useUploadDocument();
 	const [isUploadOpen, setIsUploadOpen] = useState(false);
 
@@ -46,11 +46,39 @@ export default function LibraryPage() {
 	if (isLoading) {
 		return (
 			<div className="max-w-6xl mx-auto p-6">
-				<LibraryHeader
-					isUploadOpen={isUploadOpen}
-					onOpen={() => setIsUploadOpen(true)}
+				<div className="flex justify-between items-center mb-4">
+					<h1 className="text-2xl font-bold">My Library</h1>
+				</div>
+				<div className="grid gap-4">
+					{[1, 2, 3].map((i) => (
+						<div key={i} className="border rounded-lg p-4 animate-pulse">
+							<div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
+							<div className="h-4 bg-gray-100 rounded w-1/2" />
+						</div>
+					))}
+				</div>
+				<UploadDialog
+					open={isUploadOpen}
+					onClose={() => setIsUploadOpen(false)}
+					onUpload={handleUpload}
 				/>
-				<p className="text-gray-500">Loading...</p>
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div className="max-w-6xl mx-auto p-6">
+				<h1 className="text-2xl font-bold mb-4">My Library</h1>
+				<div className="text-center py-12">
+					<p className="text-red-600 mb-4">Failed to load documents</p>
+					<button
+						onClick={() => refetch()}
+						className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+					>
+						Retry
+					</button>
+				</div>
 				<UploadDialog
 					open={isUploadOpen}
 					onClose={() => setIsUploadOpen(false)}

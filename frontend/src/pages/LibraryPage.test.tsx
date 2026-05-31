@@ -52,13 +52,16 @@ describe('LibraryPage', () => {
     expect(await screen.findByText(/upload your first/i)).toBeInTheDocument()
   })
 
-  it('shows loading state while fetching documents', () => {
+  it('shows skeleton loading while fetching documents', () => {
     // Don't resolve the promise — keep it pending
     vi.mocked(api.fetchDocuments).mockReturnValue(new Promise(() => {}))
 
-    renderWithProviders(<LibraryPage />)
+    const { container } = renderWithProviders(<LibraryPage />)
 
-    expect(screen.getByText(/loading/i)).toBeInTheDocument()
+    // Should show skeleton animation bars instead of plain text
+    expect(screen.getByText('My Library')).toBeInTheDocument()
+    expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
+    expect(screen.queryByText(/^loading\.\.\.$/i)).not.toBeInTheDocument()
   })
 
   it('renders document list when API returns data', async () => {
@@ -83,12 +86,12 @@ describe('LibraryPage', () => {
     expect(screen.getByText(/epub/i)).toBeInTheDocument()
   })
 
-  it('shows upload button', () => {
+  it('shows upload button', async () => {
     vi.mocked(api.fetchDocuments).mockResolvedValue([])
 
     renderWithProviders(<LibraryPage />)
 
-    expect(screen.getByRole('button', { name: /upload/i })).toBeInTheDocument()
+    expect(await screen.findByRole('button', { name: /upload/i })).toBeInTheDocument()
   })
 
   it('opens upload dialog when upload button is clicked', async () => {
@@ -97,7 +100,7 @@ describe('LibraryPage', () => {
 
     renderWithProviders(<LibraryPage />)
 
-    await user.click(screen.getByRole('button', { name: /upload/i }))
+    await user.click(await screen.findByRole('button', { name: /upload/i }))
 
     expect(screen.getByText(/upload epub/i)).toBeInTheDocument()
   })
@@ -109,7 +112,7 @@ describe('LibraryPage', () => {
     renderWithProviders(<LibraryPage />)
 
     // Open dialog
-    await user.click(screen.getByRole('button', { name: /upload/i }))
+    await user.click(await screen.findByRole('button', { name: /upload/i }))
     expect(screen.getByText(/upload epub/i)).toBeInTheDocument()
 
     // Cancel
@@ -135,7 +138,7 @@ describe('LibraryPage', () => {
     renderWithProviders(<LibraryPage />)
 
     // Open dialog
-    await user.click(screen.getByRole('button', { name: /upload/i }))
+    await user.click(await screen.findByRole('button', { name: /upload/i }))
 
     // Select a file
     const file = new File(['test content'], 'test.epub', { type: 'application/epub+zip' })
@@ -150,6 +153,39 @@ describe('LibraryPage', () => {
       expect(screen.queryByText(/upload epub/i)).not.toBeInTheDocument()
     })
     expect(await screen.findByText('Uploaded Book')).toBeInTheDocument()
+  })
+
+  it('shows retry button on API error', async () => {
+    vi.mocked(api.fetchDocuments).mockRejectedValue(new Error('API error'))
+
+    renderWithProviders(<LibraryPage />)
+
+    expect(await screen.findByRole('button', { name: /retry/i })).toBeInTheDocument()
+  })
+
+  it('retry button refetches documents', async () => {
+    const user = userEvent.setup()
+    // First call fails
+    vi.mocked(api.fetchDocuments)
+      .mockRejectedValueOnce(new Error('fail'))
+      .mockResolvedValueOnce([{
+        id: '1', title: 'Retried Book', file_type: 'epub', file_size: 100,
+        status: 'ready', language: 'en', chapter_count: 1, created_at: '',
+      }])
+
+    renderWithProviders(<LibraryPage />)
+
+    await user.click(await screen.findByRole('button', { name: /retry/i }))
+    expect(await screen.findByText('Retried Book')).toBeInTheDocument()
+  })
+
+  it('shows skeleton loading instead of plain text', () => {
+    vi.mocked(api.fetchDocuments).mockReturnValue(new Promise(() => {}))
+
+    renderWithProviders(<LibraryPage />)
+
+    // Should NOT show plain "Loading..." text
+    expect(screen.queryByText(/^loading\.\.\.$/i)).not.toBeInTheDocument()
   })
 
   it('navigates to reader when clicking a document card', async () => {
