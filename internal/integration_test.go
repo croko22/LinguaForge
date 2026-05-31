@@ -206,7 +206,7 @@ func setupIntegrationTest(t *testing.T) (*testDeps, func()) {
 	}
 
 	epubParser := parser.NewEpubParser()
-	docService := service.NewDocumentService(docRepo, chRepo, fileStorage, epubParser)
+	docService := service.NewDocumentService(docRepo, chRepo, fileStorage, []parser.Parser{epubParser})
 	docHandler := handler.NewDocumentHandler(docService)
 
 	// ── Chi router ─────────────────────────────────────────────────────────

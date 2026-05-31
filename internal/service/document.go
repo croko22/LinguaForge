@@ -31,7 +31,7 @@ type DocumentService struct {
 	docRepo repository.DocumentRepository
 	chRepo  repository.ChapterRepository
 	storage storage.FileStorage
-	parser  parser.Parser
+	parsers []parser.Parser
 }
 
 // NewDocumentService creates a new DocumentService.
@@ -39,13 +39,13 @@ func NewDocumentService(
 	docRepo repository.DocumentRepository,
 	chRepo repository.ChapterRepository,
 	storage storage.FileStorage,
-	parser parser.Parser,
+	parsers []parser.Parser,
 ) *DocumentService {
 	return &DocumentService{
 		docRepo: docRepo,
 		chRepo:  chRepo,
 		storage: storage,
-		parser:  parser,
+		parsers: parsers,
 	}
 }
 
@@ -53,7 +53,15 @@ func NewDocumentService(
 // It returns the fully populated Document on success, or an error on failure.
 func (s *DocumentService) UploadDocument(ctx context.Context, filename string, fileSize int64, reader io.Reader) (*model.Document, error) {
 	// ── Validation ───────────────────────────────────────────────────────────
-	if !s.parser.CanParse(filename) {
+	// Find matching parser
+	var matched parser.Parser
+	for _, p := range s.parsers {
+		if p.CanParse(filename) {
+			matched = p
+			break
+		}
+	}
+	if matched == nil {
 		return nil, fmt.Errorf("%w: %s", ErrInvalidFileType, filename)
 	}
 	if fileSize > MaxUploadSize {
@@ -106,7 +114,7 @@ func (s *DocumentService) UploadDocument(ctx context.Context, filename string, f
 	}
 
 	// ── Parse the document ───────────────────────────────────────────────────
-	parsedDoc, err := s.parser.Parse(bytes.NewReader(data), int64(len(data)))
+	parsedDoc, err := matched.Parse(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
 		errMsg := fmt.Sprintf("parse failed: %s", err.Error())
 		if updateErr := s.docRepo.UpdateStatus(ctx, docID, model.StatusError, errMsg); updateErr != nil {

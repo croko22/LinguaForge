@@ -55,7 +55,7 @@ func main() {
 		os.Exit(1)
 	}
 	epubParser := parser.NewEpubParser()
-	docService := service.NewDocumentService(docRepo, chRepo, fileStorage, epubParser)
+	docService := service.NewDocumentService(docRepo, chRepo, fileStorage, []parser.Parser{epubParser})
 	docHandler := handler.NewDocumentHandler(docService)
 	wordRepo := repository.NewWordRepository(db)
 	wordService := service.NewWordService(wordRepo)
