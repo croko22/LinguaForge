@@ -134,4 +134,23 @@ describe('ReaderPage', () => {
     await user.click(screen.getByRole('button', { name: /clear/i }))
     expect(screen.getByText(/click a word/i)).toBeInTheDocument()
   })
+
+  it('shows error state when document not found', async () => {
+    // Mock chapter content to fail
+    vi.mocked(api.fetchChapterContent).mockRejectedValue(new Error('not found'))
+    // Also mock chapters to fail (indicates doc not found)
+    vi.mocked(api.fetchChapters).mockRejectedValue(new Error('not found'))
+
+    renderWithProviders(<ReaderPage />)
+
+    expect(await screen.findByText(/document not found/i)).toBeInTheDocument()
+  })
+
+  it('shows error state when chapter content fails to load', async () => {
+    vi.mocked(api.fetchChapterContent).mockRejectedValue(new Error('network error'))
+
+    renderWithProviders(<ReaderPage />)
+
+    expect(await screen.findByText(/failed to load/i)).toBeInTheDocument()
+  })
 })

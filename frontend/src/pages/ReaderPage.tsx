@@ -11,8 +11,8 @@ export default function ReaderPage() {
 	const navigate = useNavigate();
 	const currentIndex = parseInt(chapterIndexParam ?? "0", 10);
 
-	const { data: chapters } = useChapters(id ?? "");
-	const { data: chapter } = useChapterContent(id ?? "", currentIndex);
+	const { data: chapters, isError: chaptersError } = useChapters(id ?? "");
+	const { data: chapter, isError } = useChapterContent(id ?? "", currentIndex);
 
 	const [selectedWord, setSelectedWord] = useState<string | null>(null);
 	const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(
@@ -29,6 +29,30 @@ export default function ReaderPage() {
 	const totalChapters = chapters?.length ?? 0;
 	const hasPrev = currentIndex > 0;
 	const hasNext = currentIndex < totalChapters - 1;
+
+	if (chaptersError && !chapters) {
+		return (
+			<div className="flex h-screen items-center justify-center">
+				<div className="text-center">
+					<h2 className="text-xl font-semibold text-red-600 mb-2">Document not found</h2>
+					<p className="text-gray-500 mb-4">This document may have been deleted or is unavailable.</p>
+					<a href="/" className="text-blue-600 hover:underline">← Back to Library</a>
+				</div>
+			</div>
+		);
+	}
+
+	if (isError) {
+		return (
+			<div className="flex h-screen items-center justify-center">
+				<div className="text-center">
+					<h2 className="text-xl font-semibold text-red-600 mb-2">Failed to load chapter</h2>
+					<p className="text-gray-500 mb-4">There was a problem loading this chapter.</p>
+					<a href="/" className="text-blue-600 hover:underline">← Back to Library</a>
+				</div>
+			</div>
+		);
+	}
 
 	const goTo = (index: number) => {
 		setSelectedWord(null);
