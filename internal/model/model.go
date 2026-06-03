@@ -14,6 +14,7 @@ type Document struct {
 	ErrorMessage string    `json:"error_message,omitempty"`
 	Language     string    `json:"language,omitempty"`
 	ChapterCount int       `json:"chapter_count"`
+	CoverPath    string    `json:"cover_url,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 	UpdatedAt    time.Time `json:"updated_at"`
 }
@@ -38,15 +39,17 @@ type DocumentSummary struct {
 	Status       string    `json:"status"`
 	Language     string    `json:"language,omitempty"`
 	ChapterCount int       `json:"chapter_count"`
+	CoverURL     string    `json:"cover_url,omitempty"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
 // ParsedDocument is the result of parsing an EPUB file (before DB storage).
 type ParsedDocument struct {
-	Title    string
-	Author   string
-	Language string
-	Chapters []ParsedChapter
+	Title          string
+	Author         string
+	Language       string
+	Chapters       []ParsedChapter
+	CoverImageData []byte // raw cover image bytes, nil if no cover
 }
 
 // ParsedChapter is a single chapter from a parsed EPUB.

@@ -7,10 +7,13 @@ import LibraryPage from './LibraryPage'
 import * as api from '../api/documents'
 import type { DocumentSummary } from '../api/documents'
 
-// Mock the API module
 vi.mock('../api/documents', () => ({
   fetchDocuments: vi.fn(),
   uploadDocument: vi.fn(),
+}))
+
+vi.mock('../api/config', () => ({
+  API_BASE: '/api',
 }))
 
 function LocationDisplay() {
@@ -37,61 +40,86 @@ function renderWithProviders(ui: React.ReactElement) {
   )
 }
 
+const baseDoc: DocumentSummary = {
+  id: '1',
+  title: 'Test Book',
+  file_type: 'epub',
+  file_size: 1024,
+  status: 'ready',
+  language: 'en',
+  chapter_count: 5,
+  created_at: '2026-01-01T00:00:00Z',
+}
+
 describe('LibraryPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('shows empty state when there are no documents', async () => {
-    vi.mocked(api.fetchDocuments).mockResolvedValue([])
-
-    renderWithProviders(<LibraryPage />)
-
-    // Should show empty state message
-    expect(await screen.findByText(/no documents/i)).toBeInTheDocument()
-    expect(await screen.findByText(/upload your first/i)).toBeInTheDocument()
-  })
-
-  it('shows skeleton loading while fetching documents', () => {
-    // Don't resolve the promise — keep it pending
+  it('renders loading skeleton with pulse animation', () => {
     vi.mocked(api.fetchDocuments).mockReturnValue(new Promise(() => {}))
-
     const { container } = renderWithProviders(<LibraryPage />)
-
-    // Should show skeleton animation bars instead of plain text
     expect(screen.getByText('My Library')).toBeInTheDocument()
     expect(container.querySelector('.animate-pulse')).toBeInTheDocument()
-    expect(screen.queryByText(/^loading\.\.\.$/i)).not.toBeInTheDocument()
   })
 
-  it('renders document list when API returns data', async () => {
-    const mockDocs: DocumentSummary[] = [
-      {
-        id: '1',
-        title: 'Test Book',
-        file_type: 'epub',
-        file_size: 1024,
-        status: 'ready',
-        language: 'en',
-        chapter_count: 5,
-        created_at: '2026-01-01T00:00:00Z',
-      },
-    ]
-    vi.mocked(api.fetchDocuments).mockResolvedValue(mockDocs)
+  it('renders empty state when no documents', async () => {
+    vi.mocked(api.fetchDocuments).mockResolvedValue([])
+    renderWithProviders(<LibraryPage />)
+    expect(await screen.findByText('No books yet')).toBeInTheDocument()
+    expect(screen.getByText(/upload your first epub/i)).toBeInTheDocument()
+  })
+
+  it('renders error state with retry button', async () => {
+    vi.mocked(api.fetchDocuments).mockRejectedValue(new Error('fail'))
+    renderWithProviders(<LibraryPage />)
+    expect(await screen.findByText('Failed to load your library')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument()
+  })
+
+  it('retry button refetches documents', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.fetchDocuments)
+      .mockRejectedValueOnce(new Error('fail'))
+      .mockResolvedValueOnce([{ ...baseDoc, id: '2', title: 'Retried Book' }])
+
+    renderWithProviders(<LibraryPage />)
+    await user.click(await screen.findByRole('button', { name: /try again/i }))
+    expect(await screen.findByText('Retried Book')).toBeInTheDocument()
+  })
+
+  it('renders document cards with cover images', async () => {
+    const docWithCover: DocumentSummary = {
+      ...baseDoc,
+      cover_url: 'covers/abc.jpg',
+    }
+    vi.mocked(api.fetchDocuments).mockResolvedValue([docWithCover])
 
     renderWithProviders(<LibraryPage />)
 
     expect(await screen.findByText('Test Book')).toBeInTheDocument()
-    expect(screen.getByText(/5 chapters/i)).toBeInTheDocument()
-    expect(screen.getByText(/epub/i)).toBeInTheDocument()
+    const img = screen.getByRole('img')
+    expect(img).toHaveAttribute('src', expect.stringContaining('/api/documents/1/cover'))
+    expect(img).toHaveAttribute('alt', 'Test Book')
   })
 
-  it('shows upload button', async () => {
-    vi.mocked(api.fetchDocuments).mockResolvedValue([])
+  it('renders placeholder gradient when no cover image', async () => {
+    vi.mocked(api.fetchDocuments).mockResolvedValue([baseDoc])
 
     renderWithProviders(<LibraryPage />)
 
-    expect(await screen.findByRole('button', { name: /upload/i })).toBeInTheDocument()
+    expect(await screen.findByText('Test Book')).toBeInTheDocument()
+    expect(screen.getByText('📖')).toBeInTheDocument()
+    expect(screen.queryByRole('img')).not.toBeInTheDocument()
+  })
+
+  it('navigates to reader when clicking a card', async () => {
+    const user = userEvent.setup()
+    vi.mocked(api.fetchDocuments).mockResolvedValue([baseDoc])
+
+    renderWithProviders(<LibraryPage />)
+    await user.click(await screen.findByText('Test Book'))
+    expect(screen.getByTestId('location').textContent).toBe('/read/1/0')
   })
 
   it('opens upload dialog when upload button is clicked', async () => {
@@ -99,7 +127,6 @@ describe('LibraryPage', () => {
     vi.mocked(api.fetchDocuments).mockResolvedValue([])
 
     renderWithProviders(<LibraryPage />)
-
     await user.click(await screen.findByRole('button', { name: /upload/i }))
 
     expect(screen.getByText(/upload epub/i)).toBeInTheDocument()
@@ -111,13 +138,10 @@ describe('LibraryPage', () => {
 
     renderWithProviders(<LibraryPage />)
 
-    // Open dialog
     await user.click(await screen.findByRole('button', { name: /upload/i }))
     expect(screen.getByText(/upload epub/i)).toBeInTheDocument()
 
-    // Cancel
     await user.click(screen.getByRole('button', { name: /cancel/i }))
-
     expect(screen.queryByText(/upload epub/i)).not.toBeInTheDocument()
   })
 
@@ -125,89 +149,144 @@ describe('LibraryPage', () => {
     const user = userEvent.setup()
     vi.mocked(api.fetchDocuments).mockResolvedValue([])
     vi.mocked(api.uploadDocument).mockResolvedValue({
+      ...baseDoc,
       id: 'new-1',
       title: 'Uploaded Book',
-      file_type: 'epub',
-      file_size: 2048,
-      status: 'ready',
-      language: 'en',
       chapter_count: 3,
-      created_at: '2026-06-01T00:00:00Z',
     })
 
     renderWithProviders(<LibraryPage />)
 
-    // Open dialog
     await user.click(await screen.findByRole('button', { name: /upload/i }))
 
-    // Select a file
-    const file = new File(['test content'], 'test.epub', { type: 'application/epub+zip' })
+    const file = new File(['test'], 'test.epub', { type: 'application/epub+zip' })
     const fileInput = screen.getByLabelText(/file/i)
     await user.upload(fileInput, file)
 
-    // Click upload
     await user.click(screen.getByRole('button', { name: /^upload$/i }))
 
-    // Dialog should close and the new book should appear
     await waitFor(() => {
       expect(screen.queryByText(/upload epub/i)).not.toBeInTheDocument()
     })
     expect(await screen.findByText('Uploaded Book')).toBeInTheDocument()
   })
 
-  it('shows retry button on API error', async () => {
-    vi.mocked(api.fetchDocuments).mockRejectedValue(new Error('API error'))
+  describe('status color-coding', () => {
+    it('shows green badge for ready status', async () => {
+      vi.mocked(api.fetchDocuments).mockResolvedValue([{ ...baseDoc, status: 'ready' }])
+      renderWithProviders(<LibraryPage />)
+      const badge = await screen.findByText('ready')
+      expect(badge.className).toContain('text-green-700')
+      expect(badge.className).toContain('bg-green-50')
+    })
 
-    renderWithProviders(<LibraryPage />)
+    it('shows red badge for error status', async () => {
+      vi.mocked(api.fetchDocuments).mockResolvedValue([{ ...baseDoc, status: 'error' }])
+      renderWithProviders(<LibraryPage />)
+      const badge = await screen.findByText('error')
+      expect(badge.className).toContain('text-red-700')
+      expect(badge.className).toContain('bg-red-50')
+    })
 
-    expect(await screen.findByRole('button', { name: /retry/i })).toBeInTheDocument()
+    it('shows amber badge for processing status', async () => {
+      vi.mocked(api.fetchDocuments).mockResolvedValue([{ ...baseDoc, status: 'processing' }])
+      renderWithProviders(<LibraryPage />)
+      const badge = await screen.findByText('processing')
+      expect(badge.className).toContain('text-amber-700')
+      expect(badge.className).toContain('bg-amber-50')
+    })
+
+    it('shows amber badge for pending status', async () => {
+      vi.mocked(api.fetchDocuments).mockResolvedValue([{ ...baseDoc, status: 'pending' }])
+      renderWithProviders(<LibraryPage />)
+      const badge = await screen.findByText('pending')
+      expect(badge.className).toContain('text-amber-700')
+      expect(badge.className).toContain('bg-amber-50')
+    })
   })
 
-  it('retry button refetches documents', async () => {
-    const user = userEvent.setup()
-    // First call fails
-    vi.mocked(api.fetchDocuments)
-      .mockRejectedValueOnce(new Error('fail'))
-      .mockResolvedValueOnce([{
-        id: '1', title: 'Retried Book', file_type: 'epub', file_size: 100,
-        status: 'ready', language: 'en', chapter_count: 1, created_at: '',
-      }])
+  describe('metadata display', () => {
+    it('shows file type as uppercase text', async () => {
+      vi.mocked(api.fetchDocuments).mockResolvedValue([{ ...baseDoc, file_type: 'epub' }])
+      renderWithProviders(<LibraryPage />)
+      expect(await screen.findByText('epub')).toBeInTheDocument()
+    })
 
-    renderWithProviders(<LibraryPage />)
+    it('shows chapter count', async () => {
+      vi.mocked(api.fetchDocuments).mockResolvedValue([{ ...baseDoc, chapter_count: 12 }])
+      renderWithProviders(<LibraryPage />)
+      expect(await screen.findByText('12 chapters')).toBeInTheDocument()
+    })
 
-    await user.click(await screen.findByRole('button', { name: /retry/i }))
-    expect(await screen.findByText('Retried Book')).toBeInTheDocument()
+    it('shows singular chapter count for single chapter', async () => {
+      vi.mocked(api.fetchDocuments).mockResolvedValue([{ ...baseDoc, chapter_count: 1 }])
+      renderWithProviders(<LibraryPage />)
+      expect(await screen.findByText('1 chapter')).toBeInTheDocument()
+    })
+
+    it('shows language when provided', async () => {
+      vi.mocked(api.fetchDocuments).mockResolvedValue([{ ...baseDoc, language: 'fr' }])
+      renderWithProviders(<LibraryPage />)
+      expect(await screen.findByText('fr')).toBeInTheDocument()
+    })
   })
 
-  it('shows skeleton loading instead of plain text', () => {
-    vi.mocked(api.fetchDocuments).mockReturnValue(new Promise(() => {}))
+  describe('view toggle', () => {
+    it('renders grid and list toggle buttons', async () => {
+      vi.mocked(api.fetchDocuments).mockResolvedValue([baseDoc])
+      renderWithProviders(<LibraryPage />)
+      await screen.findByText('Test Book')
 
-    renderWithProviders(<LibraryPage />)
+      const gridBtn = screen.getByTitle('Grid view')
+      const listBtn = screen.getByTitle('List view')
+      expect(gridBtn).toBeInTheDocument()
+      expect(listBtn).toBeInTheDocument()
+    })
 
-    // Should NOT show plain "Loading..." text
-    expect(screen.queryByText(/^loading\.\.\.$/i)).not.toBeInTheDocument()
-  })
+    it('clicking list toggle shows table view', async () => {
+      const user = userEvent.setup()
+      vi.mocked(api.fetchDocuments).mockResolvedValue([
+        { ...baseDoc, id: '1', title: 'List Book', file_type: 'pdf', chapter_count: 3, language: 'en', status: 'ready' },
+      ])
+      renderWithProviders(<LibraryPage />)
+      await screen.findByText('List Book')
 
-  it('navigates to reader when clicking a document card', async () => {
-    const user = userEvent.setup()
-    const mockDocs: DocumentSummary[] = [
-      {
-        id: 'book-1',
-        title: 'Economics 101',
-        file_type: 'epub',
-        file_size: 2048,
-        status: 'ready',
-        language: 'en',
-        chapter_count: 72,
-        created_at: '2026-01-01T00:00:00Z',
-      },
-    ]
-    vi.mocked(api.fetchDocuments).mockResolvedValue(mockDocs)
+      await user.click(screen.getByTitle('List view'))
 
-    renderWithProviders(<LibraryPage />)
+      expect(screen.getByText('Book')).toBeInTheDocument()
+      expect(screen.getByText('Type')).toBeInTheDocument()
+      expect(screen.getByText('Chapters')).toBeInTheDocument()
+      expect(screen.getByText('Language')).toBeInTheDocument()
+      expect(screen.getByText('Status')).toBeInTheDocument()
+    })
 
-    await user.click(await screen.findByText('Economics 101'))
+    it('clicking grid toggle shows grid view after list', async () => {
+      const user = userEvent.setup()
+      vi.mocked(api.fetchDocuments).mockResolvedValue([baseDoc])
+      renderWithProviders(<LibraryPage />)
+      await screen.findByText('Test Book')
 
-    expect(screen.getByTestId('location').textContent).toBe('/read/book-1/0')
+      await user.click(screen.getByTitle('List view'))
+      expect(screen.getByText('Book')).toBeInTheDocument()
+
+      await user.click(screen.getByTitle('Grid view'))
+      expect(screen.queryByText('Type')).not.toBeInTheDocument()
+    })
+
+    it('list view shows document metadata', async () => {
+      const user = userEvent.setup()
+      vi.mocked(api.fetchDocuments).mockResolvedValue([
+        { ...baseDoc, id: '1', title: 'Meta Book', file_type: 'mobi', chapter_count: 7, language: 'de', status: 'processing' },
+      ])
+      renderWithProviders(<LibraryPage />)
+      await screen.findByText('Meta Book')
+
+      await user.click(screen.getByTitle('List view'))
+
+      expect(screen.getByText('mobi')).toBeInTheDocument()
+      expect(screen.getByText('7')).toBeInTheDocument()
+      expect(screen.getByText('de')).toBeInTheDocument()
+      expect(screen.getByText('processing')).toBeInTheDocument()
+    })
   })
 })

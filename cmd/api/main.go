@@ -22,6 +22,7 @@ import (
 	"github.com/croko/language-app/internal/service"
 	"github.com/croko/language-app/internal/storage"
 	"github.com/croko/language-app/internal/translator"
+	"github.com/croko/language-app/internal/worker"
 )
 
 func main() {
@@ -57,6 +58,10 @@ func main() {
 	epubParser := parser.NewEpubParser()
 	pdfParser := parser.NewPdfParser()
 	docService := service.NewDocumentService(docRepo, chRepo, fileStorage, []parser.Parser{epubParser, pdfParser})
+	pool := worker.New(2, 10, docService.ProcessBook)
+	pool.Start()
+	defer pool.Stop()
+	docService.SetEnqueueFunc(pool.Enqueue)
 	docHandler := handler.NewDocumentHandler(docService)
 	wordRepo := repository.NewWordRepository(db)
 	wordService := service.NewWordService(wordRepo)

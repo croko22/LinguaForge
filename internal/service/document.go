@@ -15,6 +15,7 @@ import (
 	"github.com/croko/language-app/internal/parser"
 	"github.com/croko/language-app/internal/repository"
 	"github.com/croko/language-app/internal/storage"
+	"github.com/croko/language-app/internal/worker"
 )
 
 // MaxUploadSize is the maximum allowed file size for uploads (50 MB).
@@ -32,6 +33,7 @@ type DocumentService struct {
 	chRepo  repository.ChapterRepository
 	storage storage.FileStorage
 	parsers []parser.Parser
+	enqueue func(worker.Job) error
 }
 
 // NewDocumentService creates a new DocumentService.
@@ -49,11 +51,16 @@ func NewDocumentService(
 	}
 }
 
-// UploadDocument uploads, stores, and parses a document file.
-// It returns the fully populated Document on success, or an error on failure.
+// SetEnqueueFunc sets the function used to enqueue jobs for async processing.
+// If not set, UploadDocument processes books synchronously (backward compat).
+func (s *DocumentService) SetEnqueueFunc(fn func(worker.Job) error) {
+	s.enqueue = fn
+}
+
+// UploadDocument uploads, stores, and enqueues a document file for processing.
+// When an enqueue function is set, the document is created with "pending" status
+// and processing happens asynchronously. Otherwise, processing is synchronous.
 func (s *DocumentService) UploadDocument(ctx context.Context, filename string, fileSize int64, reader io.Reader) (*model.Document, error) {
-	// ── Validation ───────────────────────────────────────────────────────────
-	// Find matching parser
 	var matched parser.Parser
 	for _, p := range s.parsers {
 		if p.CanParse(filename) {
@@ -71,7 +78,6 @@ func (s *DocumentService) UploadDocument(ctx context.Context, filename string, f
 	now := time.Now().UTC()
 	docID := uuid.New().String()
 
-	// ── Create document record with "processing" status ──────────────────────
 	doc := &model.Document{
 		ID:           docID,
 		Title:        filename,
@@ -79,7 +85,7 @@ func (s *DocumentService) UploadDocument(ctx context.Context, filename string, f
 		FileType:     fileTypeFromFilename(filename),
 		FileSize:     fileSize,
 		StoragePath:  "",
-		Status:       model.StatusProcessing,
+		Status:       model.StatusPending,
 		ErrorMessage: "",
 		Language:     "",
 		ChapterCount: 0,
@@ -91,7 +97,6 @@ func (s *DocumentService) UploadDocument(ctx context.Context, filename string, f
 		return nil, fmt.Errorf("upload document: create document: %w", err)
 	}
 
-	// ── Store file via storage ───────────────────────────────────────────────
 	storagePath, err := s.storage.Store(ctx, filename, reader)
 	if err != nil {
 		_ = s.docRepo.UpdateStatus(ctx, docID, model.StatusError, "storage failed")
@@ -99,36 +104,88 @@ func (s *DocumentService) UploadDocument(ctx context.Context, filename string, f
 	}
 	doc.StoragePath = storagePath
 
-	// ── Read stored file for parsing ─────────────────────────────────────────
-	readerCloser, err := s.storage.Get(ctx, storagePath)
-	if err != nil {
-		_ = s.docRepo.UpdateStatus(ctx, docID, model.StatusError, "read stored file failed")
-		return nil, fmt.Errorf("upload document: read stored file: %w", err)
+	if s.enqueue != nil {
+		job := worker.Job{
+			DocID:       docID,
+			Filename:    filename,
+			FileSize:    fileSize,
+			StoragePath: storagePath,
+		}
+		if err := s.enqueue(job); err != nil {
+			_ = s.docRepo.UpdateStatus(ctx, docID, model.StatusError, "enqueue failed")
+			return nil, fmt.Errorf("upload document: enqueue: %w", err)
+		}
+		return doc, nil
 	}
-	defer readerCloser.Close()
 
-	data, err := io.ReadAll(readerCloser)
-	if err != nil {
-		_ = s.docRepo.UpdateStatus(ctx, docID, model.StatusError, "read file content failed")
-		return nil, fmt.Errorf("upload document: read file content: %w", err)
+	job := worker.Job{
+		DocID:       docID,
+		Filename:    filename,
+		FileSize:    fileSize,
+		StoragePath: storagePath,
+	}
+	if err := s.ProcessBook(ctx, job); err != nil {
+		return nil, fmt.Errorf("upload document: process: %w", err)
 	}
 
-	// ── Parse the document ───────────────────────────────────────────────────
-	parsedDoc, err := matched.Parse(bytes.NewReader(data), int64(len(data)))
+	doc, err = s.docRepo.GetByID(ctx, docID)
+	if err != nil {
+		return nil, fmt.Errorf("upload document: get after process: %w", err)
+	}
+	return doc, nil
+}
+
+// ProcessBook processes a document in the background.
+// It reads the stored file, parses it, creates chapter records,
+// and updates the document status.
+func (s *DocumentService) ProcessBook(ctx context.Context, job worker.Job) error {
+	if err := s.docRepo.UpdateStatus(ctx, job.DocID, model.StatusProcessing); err != nil {
+		return fmt.Errorf("process book: set processing status: %w", err)
+	}
+
+	reader, err := s.storage.Get(ctx, job.StoragePath)
+	if err != nil {
+		errMsg := fmt.Sprintf("read stored file failed: %s", err.Error())
+		_ = s.docRepo.UpdateStatus(ctx, job.DocID, model.StatusError, errMsg)
+		return fmt.Errorf("process book: read stored file: %w", err)
+	}
+	defer reader.Close()
+
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		errMsg := fmt.Sprintf("read file content failed: %s", err.Error())
+		_ = s.docRepo.UpdateStatus(ctx, job.DocID, model.StatusError, errMsg)
+		return fmt.Errorf("process book: read file content: %w", err)
+	}
+
+	var matched parser.Parser
+	for _, p := range s.parsers {
+		if p.CanParse(job.Filename) {
+			matched = p
+			break
+		}
+	}
+	if matched == nil {
+		errMsg := fmt.Sprintf("no parser found for file: %s", job.Filename)
+		_ = s.docRepo.UpdateStatus(ctx, job.DocID, model.StatusError, errMsg)
+		return fmt.Errorf("%w: %s", ErrInvalidFileType, job.Filename)
+	}
+
+	parsedDoc, err := matched.Parse(bytes.NewReader(data), job.FileSize)
 	if err != nil {
 		errMsg := fmt.Sprintf("parse failed: %s", err.Error())
-		if updateErr := s.docRepo.UpdateStatus(ctx, docID, model.StatusError, errMsg); updateErr != nil {
-			return nil, fmt.Errorf("upload document: parse error: %w (status update failed: %v)", err, updateErr)
+		if updateErr := s.docRepo.UpdateStatus(ctx, job.DocID, model.StatusError, errMsg); updateErr != nil {
+			return fmt.Errorf("process book: parse error: %w (status update failed: %v)", err, updateErr)
 		}
-		return nil, fmt.Errorf("upload document: parse: %w", err)
+		return fmt.Errorf("process book: parse: %w", err)
 	}
 
-	// ── Build chapter records ────────────────────────────────────────────────
+	now := time.Now().UTC()
 	chapters := make([]*model.Chapter, 0, len(parsedDoc.Chapters))
 	for _, pc := range parsedDoc.Chapters {
 		chapters = append(chapters, &model.Chapter{
 			ID:           uuid.New().String(),
-			DocumentID:   docID,
+			DocumentID:   job.DocID,
 			ChapterIndex: pc.Index,
 			ChapterTitle: pc.Title,
 			Content:      pc.Content,
@@ -137,32 +194,42 @@ func (s *DocumentService) UploadDocument(ctx context.Context, filename string, f
 		})
 	}
 
-	// ── Batch-create chapters ────────────────────────────────────────────────
 	if err := s.chRepo.CreateBatch(ctx, chapters); err != nil {
 		errMsg := fmt.Sprintf("store chapters failed: %s", err.Error())
-		_ = s.docRepo.UpdateStatus(ctx, docID, model.StatusError, errMsg)
-		return nil, fmt.Errorf("upload document: create chapters: %w", err)
+		_ = s.docRepo.UpdateStatus(ctx, job.DocID, model.StatusError, errMsg)
+		return fmt.Errorf("process book: create chapters: %w", err)
 	}
 
-	// ── Update document status to "ready" ────────────────────────────────────
-	if err := s.docRepo.UpdateStatus(ctx, docID, model.StatusReady); err != nil {
-		return nil, fmt.Errorf("upload document: update status to ready: %w", err)
+	doc, err := s.docRepo.GetByID(ctx, job.DocID)
+	if err != nil {
+		_ = s.docRepo.UpdateStatus(ctx, job.DocID, model.StatusError, "get document failed")
+		return fmt.Errorf("process book: get document: %w", err)
 	}
-
-	// Populate the returned document with parsed metadata.
 	if parsedDoc.Title != "" {
 		doc.Title = parsedDoc.Title
 	}
 	doc.Language = parsedDoc.Language
 	doc.ChapterCount = len(chapters)
-	doc.Status = model.StatusReady
 	doc.UpdatedAt = time.Now().UTC()
 
-	if err := s.docRepo.UpdateMetadata(ctx, doc); err != nil {
-		return nil, fmt.Errorf("upload document: update metadata: %w", err)
+	if len(parsedDoc.CoverImageData) > 0 {
+		coverFilename := fmt.Sprintf("%s_cover", job.DocID)
+		coverPath, err := s.storage.Store(ctx, coverFilename, bytes.NewReader(parsedDoc.CoverImageData))
+		if err == nil {
+			doc.CoverPath = coverPath
+		}
 	}
 
-	return doc, nil
+	if err := s.docRepo.UpdateMetadata(ctx, doc); err != nil {
+		_ = s.docRepo.UpdateStatus(ctx, job.DocID, model.StatusError, "update metadata failed")
+		return fmt.Errorf("process book: update metadata: %w", err)
+	}
+
+	if err := s.docRepo.UpdateStatus(ctx, job.DocID, model.StatusReady); err != nil {
+		return fmt.Errorf("process book: set ready status: %w", err)
+	}
+
+	return nil
 }
 
 // ListDocuments returns a summary list of all documents.
@@ -181,6 +248,11 @@ func (s *DocumentService) GetDocument(ctx context.Context, id string) (*model.Do
 		return nil, fmt.Errorf("get document: %w", err)
 	}
 	return doc, nil
+}
+
+// GetCover opens a cover image file for reading by its storage path.
+func (s *DocumentService) GetCover(ctx context.Context, path string) (io.ReadCloser, error) {
+	return s.storage.Get(ctx, path)
 }
 
 // GetChapters returns all chapters for a document (without content).
@@ -202,8 +274,6 @@ func (s *DocumentService) GetChapterContent(ctx context.Context, documentID stri
 	return chapter, nil
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
 // fileTypeFromFilename extracts the file extension without the leading dot.
 func fileTypeFromFilename(filename string) string {
 	ext := filepath.Ext(filename)
@@ -211,7 +281,6 @@ func fileTypeFromFilename(filename string) string {
 }
 
 // roughTokenCount estimates the number of tokens in a text string.
-// Uses whitespace-delimited word count as a reasonable approximation.
 func roughTokenCount(content string) int {
 	if content == "" {
 		return 0

@@ -7,6 +7,7 @@ export interface Document {
   language: string
   chapter_count: number
   created_at: string
+  cover_url?: string
 }
 
 export interface Chapter {

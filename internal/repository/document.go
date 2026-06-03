@@ -28,8 +28,8 @@ func NewDocumentRepository(db *sql.DB) DocumentRepository {
 
 func (r *documentRepo) Create(ctx context.Context, doc *model.Document) error {
 	query := `
-		INSERT INTO documents (id, title, filename, file_type, file_size, storage_path, status, error_message, language, chapter_count, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO documents (id, title, filename, file_type, file_size, storage_path, status, error_message, language, chapter_count, cover_path, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 	`
 	_, err := r.db.ExecContext(ctx, query,
 		doc.ID,
@@ -42,6 +42,7 @@ func (r *documentRepo) Create(ctx context.Context, doc *model.Document) error {
 		nullIfEmpty(doc.ErrorMessage),
 		doc.Language,
 		doc.ChapterCount,
+		doc.CoverPath,
 		doc.CreatedAt,
 		doc.UpdatedAt,
 	)
@@ -55,7 +56,7 @@ func (r *documentRepo) GetByID(ctx context.Context, id string) (*model.Document,
 	query := `
 		SELECT id, title, filename, file_type, file_size, storage_path, status,
 		       COALESCE(error_message, ''), COALESCE(language, ''),
-		       chapter_count, created_at, updated_at
+		       chapter_count, COALESCE(cover_path, ''), created_at, updated_at
 		FROM documents
 		WHERE id = ?
 	`
@@ -73,6 +74,7 @@ func (r *documentRepo) GetByID(ctx context.Context, id string) (*model.Document,
 		&doc.ErrorMessage,
 		&doc.Language,
 		&doc.ChapterCount,
+		&doc.CoverPath,
 		&createdRaw,
 		&updatedRaw,
 	)
@@ -100,7 +102,7 @@ func (r *documentRepo) GetByID(ctx context.Context, id string) (*model.Document,
 func (r *documentRepo) List(ctx context.Context) ([]*model.DocumentSummary, error) {
 	query := `
 		SELECT id, title, file_type, file_size, status,
-		       COALESCE(language, ''), chapter_count, created_at
+		       COALESCE(language, ''), chapter_count, COALESCE(cover_path, ''), created_at
 		FROM documents
 		ORDER BY created_at DESC
 	`
@@ -122,6 +124,7 @@ func (r *documentRepo) List(ctx context.Context) ([]*model.DocumentSummary, erro
 			&s.Status,
 			&s.Language,
 			&s.ChapterCount,
+			&s.CoverURL,
 			&createdRaw,
 		); err != nil {
 			return nil, fmt.Errorf("list documents scan: %w", err)
@@ -168,13 +171,14 @@ func (r *documentRepo) UpdateStatus(ctx context.Context, id, status string, errM
 func (r *documentRepo) UpdateMetadata(ctx context.Context, doc *model.Document) error {
 	query := `
 		UPDATE documents
-		SET title = ?, language = ?, chapter_count = ?, updated_at = ?
+		SET title = ?, language = ?, chapter_count = ?, cover_path = ?, updated_at = ?
 		WHERE id = ?
 	`
 	result, err := r.db.ExecContext(ctx, query,
 		doc.Title,
 		doc.Language,
 		doc.ChapterCount,
+		doc.CoverPath,
 		doc.UpdatedAt,
 		doc.ID,
 	)

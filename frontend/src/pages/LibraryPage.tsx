@@ -3,164 +3,279 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useDocuments, useUploadDocument } from "../hooks/useDocuments";
 import UploadDialog from "../components/UploadDialog";
+import { API_BASE } from "../api/config";
 import type { DocumentSummary } from "../api/documents";
 
-function LibraryHeader({
-	isUploadOpen,
-	onOpen,
-}: {
-	isUploadOpen: boolean;
-	onOpen: () => void;
-}) {
-	return (
-		<div className="flex justify-between items-center mb-4">
-			<h1 className="text-2xl font-bold">My Library</h1>
-			{!isUploadOpen && (
-				<button
-					onClick={onOpen}
-					className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-				>
-					Upload
-				</button>
-			)}
-		</div>
-	);
+export default function LibraryPage() {
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { data: documents, isLoading, isError, refetch } = useDocuments();
+  const uploadMutation = useUploadDocument();
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+
+  const handleUpload = async (file: File) => {
+    const result = await uploadMutation.mutateAsync(file);
+    queryClient.setQueryData<DocumentSummary[]>(["documents"], (old) => [
+      ...(old ?? []),
+      result,
+    ]);
+    setIsUploadOpen(false);
+  };
+
+  const handleDocumentClick = (id: string) => {
+    navigate(`/read/${id}/0`)
+  }
+
+  return (
+    <div className="bg-gray-50 min-h-screen">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <header className="flex justify-between items-center mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">My Library</h1>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setViewMode('grid')}
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-gray-200 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                title="Grid view"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H4zm0 8a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H4zm6-6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zm0 8a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" clipRule="evenodd" />
+                </svg>
+              </button>
+              <button
+                onClick={() => setViewMode('list')}
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-gray-200 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                title="List view"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+            {!isUploadOpen && (
+              <button
+                onClick={() => setIsUploadOpen(true)}
+                className="bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Upload
+              </button>
+            )}
+          </div>
+        </header>
+
+        {isLoading ? (
+          <LoadingSkeleton viewMode={viewMode} />
+        ) : isError ? (
+          <ErrorState onRetry={() => refetch()} />
+        ) : !documents?.length ? (
+          <EmptyState onUpload={() => setIsUploadOpen(true)} />
+        ) : viewMode === 'grid' ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {documents.map((doc) => (
+              <DocumentCard
+                key={doc.id}
+                document={doc}
+                onClick={() => handleDocumentClick(doc.id)}
+              />
+            ))}
+          </div>
+        ) : (
+          <DocumentList documents={documents} onDocumentClick={handleDocumentClick} />
+        )}
+      </div>
+
+      <UploadDialog
+        open={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        onUpload={handleUpload}
+      />
+    </div>
+  );
 }
 
-export default function LibraryPage() {
-	const navigate = useNavigate();
-	const queryClient = useQueryClient();
-	const { data: documents, isLoading, isError, refetch } = useDocuments();
-	const uploadMutation = useUploadDocument();
-	const [isUploadOpen, setIsUploadOpen] = useState(false);
+function LoadingSkeleton({ viewMode = 'grid' }: { viewMode?: 'grid' | 'list' }) {
+  if (viewMode === 'list') {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+        <div className="p-4 space-y-4">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="flex items-center gap-4">
+              <div className="w-10 h-14 bg-gray-200 rounded" />
+              <div className="flex-1 space-y-2">
+                <div className="h-4 bg-gray-200 rounded w-1/3" />
+                <div className="h-3 bg-gray-100 rounded w-1/4" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )
+  }
 
-	const handleUpload = async (file: File) => {
-		const result = await uploadMutation.mutateAsync(file);
-		queryClient.setQueryData<DocumentSummary[]>(["documents"], (old) => [
-			...(old ?? []),
-			result,
-		]);
-		setIsUploadOpen(false);
-	};
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+      {[1, 2, 3, 4].map((i) => (
+        <div key={i} className="bg-white rounded-xl overflow-hidden border border-gray-100 animate-pulse">
+          <div className="aspect-[3/4] bg-gray-200" />
+          <div className="p-4 space-y-3">
+            <div className="h-4 bg-gray-200 rounded w-3/4" />
+            <div className="h-4 bg-gray-200 rounded w-1/2" />
+            <div className="h-3 bg-gray-100 rounded w-1/3" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
 
-	if (isLoading) {
-		return (
-			<div className="max-w-6xl mx-auto p-6">
-				<div className="flex justify-between items-center mb-4">
-					<h1 className="text-2xl font-bold">My Library</h1>
-				</div>
-				<div className="grid gap-4">
-					{[1, 2, 3].map((i) => (
-						<div key={i} className="border rounded-lg p-4 animate-pulse">
-							<div className="h-5 bg-gray-200 rounded w-3/4 mb-2" />
-							<div className="h-4 bg-gray-100 rounded w-1/2" />
-						</div>
-					))}
-				</div>
-				<UploadDialog
-					open={isUploadOpen}
-					onClose={() => setIsUploadOpen(false)}
-					onUpload={handleUpload}
-				/>
-			</div>
-		);
-	}
+function ErrorState({ onRetry }: { onRetry: () => void }) {
+  return (
+    <div className="text-center py-16">
+      <div className="text-5xl mb-4">⚠️</div>
+      <h2 className="text-lg font-medium text-gray-900 mb-2">Failed to load your library</h2>
+      <p className="text-gray-500 mb-6">Could not fetch your documents. Please try again.</p>
+      <button
+        onClick={onRetry}
+        className="bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium"
+      >
+        Try Again
+      </button>
+    </div>
+  );
+}
 
-	if (isError) {
-		return (
-			<div className="max-w-6xl mx-auto p-6">
-				<h1 className="text-2xl font-bold mb-4">My Library</h1>
-				<div className="text-center py-12">
-					<p className="text-red-600 mb-4">Failed to load documents</p>
-					<button
-						onClick={() => refetch()}
-						className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-					>
-						Retry
-					</button>
-				</div>
-				<UploadDialog
-					open={isUploadOpen}
-					onClose={() => setIsUploadOpen(false)}
-					onUpload={handleUpload}
-				/>
-			</div>
-		);
-	}
+function EmptyState({ onUpload }: { onUpload: () => void }) {
+  return (
+    <div className="text-center py-16">
+      <div className="text-6xl mb-4">📚</div>
+      <h2 className="text-lg font-medium text-gray-900 mb-2">No books yet</h2>
+      <p className="text-gray-500 mb-6">Upload your first EPUB to start reading</p>
+      <button
+        onClick={onUpload}
+        className="bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium"
+      >
+        Upload your first book
+      </button>
+    </div>
+  );
+}
 
-	if (documents && documents.length === 0) {
-		return (
-			<div className="max-w-6xl mx-auto p-6">
-				<LibraryHeader
-					isUploadOpen={isUploadOpen}
-					onOpen={() => setIsUploadOpen(true)}
-				/>
-				<p className="text-gray-500">
-					No documents yet. Upload your first EPUB.
-				</p>
-				<UploadDialog
-					open={isUploadOpen}
-					onClose={() => setIsUploadOpen(false)}
-					onUpload={handleUpload}
-				/>
-			</div>
-		);
-	}
-
-	return (
-		<div className="max-w-6xl mx-auto p-6">
-			<LibraryHeader
-				isUploadOpen={isUploadOpen}
-				onOpen={() => setIsUploadOpen(true)}
-			/>
-			<div className="grid gap-4">
-				{documents?.map((doc) => (
-					<DocumentCard
-						key={doc.id}
-						document={doc}
-						onClick={() => navigate(`/read/${doc.id}/0`)}
-					/>
-				))}
-			</div>
-			<UploadDialog
-				open={isUploadOpen}
-				onClose={() => setIsUploadOpen(false)}
-				onUpload={handleUpload}
-			/>
-		</div>
-	);
+function DocumentList({ documents, onDocumentClick }: { documents: DocumentSummary[]; onDocumentClick: (id: string) => void }) {
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+            <th className="px-6 py-3">Book</th>
+            <th className="px-6 py-3">Type</th>
+            <th className="px-6 py-3">Chapters</th>
+            <th className="px-6 py-3">Language</th>
+            <th className="px-6 py-3">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {documents.map((doc) => (
+            <tr
+              key={doc.id}
+              onClick={() => onDocumentClick(doc.id)}
+              className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors"
+            >
+              <td className="px-6 py-4">
+                <div className="flex items-center gap-3">
+                  {doc.cover_url ? (
+                    <img
+                      src={`${API_BASE}/documents/${doc.id}/cover`}
+                      alt=""
+                      className="w-10 h-14 object-cover rounded"
+                    />
+                  ) : (
+                    <div className="w-10 h-14 bg-gradient-to-br from-blue-400 to-purple-500 rounded flex items-center justify-center text-lg">
+                      📖
+                    </div>
+                  )}
+                  <span className="font-medium text-gray-900">{doc.title}</span>
+                </div>
+              </td>
+              <td className="px-6 py-4 text-sm text-gray-500 uppercase">{doc.file_type}</td>
+              <td className="px-6 py-4 text-sm text-gray-500">{doc.chapter_count}</td>
+              <td className="px-6 py-4 text-sm text-gray-500">{doc.language || '-'}</td>
+              <td className="px-6 py-4">
+                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                  doc.status === 'ready' ? 'text-green-700 bg-green-50' :
+                  doc.status === 'error' ? 'text-red-700 bg-red-50' :
+                  'text-amber-700 bg-amber-50'
+                }`}>
+                  {doc.status}
+                </span>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
 }
 
 function DocumentCard({
-	document,
-	onClick,
+  document: doc,
+  onClick,
 }: {
-	document: DocumentSummary;
-	onClick: () => void;
+  document: DocumentSummary;
+  onClick: () => void;
 }) {
-	return (
-		<div
-			className="border rounded-lg p-4 hover:shadow-md cursor-pointer"
-			onClick={onClick}
-		>
-			<h2 className="font-semibold text-lg">{document.title}</h2>
-			<div className="flex gap-2 mt-1 text-sm text-gray-500">
-				<span className="uppercase">{document.file_type}</span>
-				<span>{document.chapter_count} chapters</span>
-				{document.language && <span>{document.language}</span>}
-				<span className={statusColor(document.status)}>{document.status}</span>
-			</div>
-		</div>
-	);
-}
+  const coverUrl = doc.cover_url
+    ? `${API_BASE}/documents/${doc.id}/cover`
+    : null;
 
-function statusColor(status: string): string {
-	switch (status) {
-		case "ready":
-			return "text-green-600";
-		case "error":
-			return "text-red-600";
-		default:
-			return "text-yellow-600";
-	}
+  const isProcessing = doc.status === "processing" || doc.status === "pending";
+
+  return (
+    <div
+      className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden border border-gray-100 hover:border-gray-200 hover:-translate-y-0.5"
+      onClick={onClick}
+    >
+      {coverUrl ? (
+        <img
+          src={coverUrl}
+          alt={doc.title}
+          className="aspect-[3/4] w-full object-cover rounded-t-xl"
+        />
+      ) : (
+        <div className="aspect-[3/4] w-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center rounded-t-xl">
+          <span className="text-5xl">📖</span>
+        </div>
+      )}
+      <div className="p-4">
+        <h3 className="font-semibold text-base line-clamp-2 text-gray-900 mb-2">
+          {doc.title}
+        </h3>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 mb-2">
+          <span className="uppercase font-medium text-gray-400">{doc.file_type}</span>
+          <span className="text-gray-300">·</span>
+          <span>{doc.chapter_count} {doc.chapter_count === 1 ? "chapter" : "chapters"}</span>
+          {doc.language && (
+            <>
+              <span className="text-gray-300">·</span>
+              <span>{doc.language}</span>
+            </>
+          )}
+        </div>
+        <span
+          className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+            doc.status === "ready"
+              ? "text-green-700 bg-green-50"
+              : doc.status === "error"
+              ? "text-red-700 bg-red-50"
+              : "text-amber-700 bg-amber-50"
+          } ${isProcessing ? "animate-pulse" : ""}`}
+        >
+          {doc.status}
+        </span>
+      </div>
+    </div>
+  );
 }

@@ -6,6 +6,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/png"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -13,6 +15,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 	_ "modernc.org/sqlite"
@@ -22,6 +25,7 @@ import (
 	"github.com/croko/language-app/internal/repository"
 	"github.com/croko/language-app/internal/service"
 	"github.com/croko/language-app/internal/storage"
+	"github.com/croko/language-app/internal/worker"
 )
 
 // ── EPUB test helpers ──────────────────────────────────────────────────────────
@@ -67,6 +71,7 @@ func createMinimalEPUB() (*bytes.Buffer, error) {
     <dc:language xmlns:dc="http://purl.org/dc/elements/1.1/">en</dc:language>
   </metadata>
   <manifest>
+    <item id="cover-img" href="cover.png" media-type="image/png" properties="cover-image"/>
     <item id="ncx" href="toc.ncx" media-type="application/x-dtbncx+xml"/>
     <item id="chapter1" href="chapter1.xhtml" media-type="application/xhtml+xml"/>
     <item id="chapter2" href="chapter2.xhtml" media-type="application/xhtml+xml"/>
@@ -104,6 +109,15 @@ func createMinimalEPUB() (*bytes.Buffer, error) {
 		return nil, err
 	}
 
+	// ── OEBPS/cover.png (1x1 PNG cover image) ──────────────────────────────
+	coverFile, err := mimeWriter.Create("OEBPS/cover.png")
+	if err != nil {
+		return nil, fmt.Errorf("create cover entry: %w", err)
+	}
+	if _, err := coverFile.Write(createCoverImage()); err != nil {
+		return nil, fmt.Errorf("write cover: %w", err)
+	}
+
 	// ── OEBPS/chapter1.xhtml ───────────────────────────────────────────────
 	ch1XHTML := `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
@@ -137,6 +151,16 @@ func createMinimalEPUB() (*bytes.Buffer, error) {
 	}
 
 	return &buf, nil
+}
+
+// createCoverImage generates a 1x1 PNG for test cover images.
+func createCoverImage() []byte {
+	buf := new(bytes.Buffer)
+	img := image.NewRGBA(image.Rect(0, 0, 1, 1))
+	if err := png.Encode(buf, img); err != nil {
+		panic(err)
+	}
+	return buf.Bytes()
 }
 
 // writeZipFile adds a text file with the given name and content to a zip writer.
@@ -173,14 +197,25 @@ func setupIntegrationTest(t *testing.T) (*testDeps, func()) {
 		t.Fatalf("failed to create temp dir: %v", err)
 	}
 
-	// ── In-memory SQLite database ──────────────────────────────────────────
-	db, err := sql.Open("sqlite", ":memory:")
+	// ── File-based SQLite database (avoids :memory: cross-connection issue) ─
+	dbPath := tempDir + "/test.db"
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		os.RemoveAll(tempDir)
-		t.Fatalf("failed to open in-memory database: %v", err)
+		t.Fatalf("failed to open database: %v", err)
 	}
 
 	// Enable WAL mode and foreign keys for the in-memory DB (pragmas).
+	if _, err := db.Exec("PRAGMA journal_mode=WAL"); err != nil {
+		db.Close()
+		os.RemoveAll(tempDir)
+		t.Fatalf("failed to enable WAL mode: %v", err)
+	}
+	if _, err := db.Exec("PRAGMA busy_timeout=5000"); err != nil {
+		db.Close()
+		os.RemoveAll(tempDir)
+		t.Fatalf("failed to set busy timeout: %v", err)
+	}
 	if _, err := db.Exec("PRAGMA foreign_keys = ON"); err != nil {
 		db.Close()
 		os.RemoveAll(tempDir)
@@ -207,6 +242,9 @@ func setupIntegrationTest(t *testing.T) (*testDeps, func()) {
 
 	epubParser := parser.NewEpubParser()
 	docService := service.NewDocumentService(docRepo, chRepo, fileStorage, []parser.Parser{epubParser})
+	pool := worker.New(2, 10, docService.ProcessBook)
+	pool.Start()
+	docService.SetEnqueueFunc(pool.Enqueue)
 	docHandler := handler.NewDocumentHandler(docService)
 
 	// ── Chi router ─────────────────────────────────────────────────────────
@@ -225,6 +263,7 @@ func setupIntegrationTest(t *testing.T) (*testDeps, func()) {
 	}
 
 	cleanup := func() {
+		pool.Stop()
 		db.Close()
 		os.RemoveAll(tempDir)
 	}
@@ -295,8 +334,8 @@ func TestUploadAndRetrieveEPUB(t *testing.T) { //nolint:gocognit,gocyclo // comp
 	deps.router.ServeHTTP(uploadRec, uploadReq)
 
 	// ── 3. Assert upload response ──────────────────────────────────────────
-	if uploadRec.Code != http.StatusCreated {
-		t.Fatalf("expected status 201, got %d; body: %s", uploadRec.Code, uploadRec.Body.String())
+	if uploadRec.Code != http.StatusAccepted {
+		t.Fatalf("expected status 202, got %d; body: %s", uploadRec.Code, uploadRec.Body.String())
 	}
 
 	var uploadResp map[string]interface{}
@@ -308,15 +347,11 @@ func TestUploadAndRetrieveEPUB(t *testing.T) { //nolint:gocognit,gocyclo // comp
 	if title, ok := uploadResp["title"].(string); !ok || title == "" {
 		t.Fatal("expected non-empty 'title' in upload response")
 	}
-	if status, ok := uploadResp["status"].(string); !ok || status != "ready" {
-		t.Fatalf("expected status 'ready', got %v", uploadResp["status"])
-	}
-	if cc, ok := uploadResp["chapter_count"].(float64); !ok || cc != 2 {
-		t.Fatalf("expected chapter_count 2, got %v", uploadResp["chapter_count"])
+	if status, ok := uploadResp["status"].(string); !ok || status != "pending" {
+		t.Fatalf("expected status 'pending', got %v", uploadResp["status"])
 	}
 
 	docID, _ := uploadResp["id"].(string)
-	docTitle, _ := uploadResp["title"].(string)
 
 	// ── 4. GET /api/documents — list ───────────────────────────────────────
 	listReq := httptest.NewRequest(http.MethodGet, "/api/documents", nil)
@@ -333,7 +368,30 @@ func TestUploadAndRetrieveEPUB(t *testing.T) { //nolint:gocognit,gocyclo // comp
 		t.Fatalf("expected 1 document in list, got %d", len(listResp))
 	}
 
-	// ── 5. GET /api/documents/{id} — get single document ───────────────────
+	// ── 5. Poll until processing completes ─────────────────────────────────
+	var docStatus string
+	for i := 0; i < 30; i++ {
+		getReq := httptest.NewRequest(http.MethodGet, "/api/documents/"+docID, nil)
+		getRec := httptest.NewRecorder()
+		deps.router.ServeHTTP(getRec, getReq)
+
+		if getRec.Code != http.StatusOK {
+			t.Fatalf("expected 200 polling document, got %d; body: %s", getRec.Code, getRec.Body.String())
+		}
+
+		var doc map[string]interface{}
+		parseJSON(t, getRec.Body, &doc)
+		docStatus, _ = doc["status"].(string)
+		if docStatus == "ready" {
+			break
+		}
+		time.Sleep(50 * time.Millisecond)
+	}
+	if docStatus != "ready" {
+		t.Fatal("document did not become ready within poll timeout")
+	}
+
+	// Verify final document state
 	getReq := httptest.NewRequest(http.MethodGet, "/api/documents/"+docID, nil)
 	getRec := httptest.NewRecorder()
 	deps.router.ServeHTTP(getRec, getReq)
@@ -348,8 +406,8 @@ func TestUploadAndRetrieveEPUB(t *testing.T) { //nolint:gocognit,gocyclo // comp
 	if id, ok := getResp["id"].(string); !ok || id != docID {
 		t.Fatalf("expected id %q in get response", docID)
 	}
-	if title, ok := getResp["title"].(string); !ok || title != docTitle {
-		t.Fatalf("expected title %q in get response", docTitle)
+	if title, ok := getResp["title"].(string); !ok || title != "Test EPUB" {
+		t.Fatalf("expected title 'Test EPUB', got %v", getResp["title"])
 	}
 	if status, ok := getResp["status"].(string); !ok || status != "ready" {
 		t.Fatalf("expected status 'ready', got %v", getResp["status"])
@@ -357,8 +415,34 @@ func TestUploadAndRetrieveEPUB(t *testing.T) { //nolint:gocognit,gocyclo // comp
 	if lang, ok := getResp["language"].(string); !ok || lang != "en" {
 		t.Fatalf("expected language 'en', got %v", getResp["language"])
 	}
+	if cc, ok := getResp["chapter_count"].(float64); !ok || cc != 2 {
+		t.Fatalf("expected chapter_count 2, got %v", getResp["chapter_count"])
+	}
 
-	// ── 6. GET /api/documents/{id}/chapters — list chapters ────────────────
+	// ── 6.5. Verify cover_url and cover endpoint ────────────────────────────
+	coverURL, ok := getResp["cover_url"].(string)
+	if !ok || coverURL == "" {
+		t.Fatalf("expected non-empty cover_url, got %v", getResp["cover_url"])
+	}
+
+	coverReq := httptest.NewRequest(http.MethodGet, "/api/documents/"+docID+"/cover", nil)
+	coverRec := httptest.NewRecorder()
+	deps.router.ServeHTTP(coverRec, coverReq)
+
+	if coverRec.Code != http.StatusOK {
+		t.Fatalf("expected 200 on cover request, got %d: %s", coverRec.Code, coverRec.Body.String())
+	}
+
+	contentType := coverRec.Header().Get("Content-Type")
+	if !strings.HasPrefix(contentType, "image/") {
+		t.Fatalf("expected image Content-Type, got %q", contentType)
+	}
+
+	if coverRec.Body.Len() == 0 {
+		t.Fatal("expected non-empty cover body")
+	}
+
+	// ── 7. GET /api/documents/{id}/chapters — list chapters ────────────────
 	chaptersReq := httptest.NewRequest(http.MethodGet, "/api/documents/"+docID+"/chapters", nil)
 	chaptersRec := httptest.NewRecorder()
 	deps.router.ServeHTTP(chaptersRec, chaptersReq)

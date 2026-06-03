@@ -10,6 +10,7 @@ export interface DocumentSummary {
   language: string
   chapter_count: number
   created_at: string
+  cover_url?: string
 }
 
 export type { Chapter, ChapterContent }

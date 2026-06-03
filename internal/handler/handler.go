@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -34,6 +35,7 @@ func (h *DocumentHandler) RegisterRoutes(r chi.Router) {
 		r.Get("/{id}", h.GetDocument)                        // GET /api/documents/{id}
 		r.Get("/{id}/chapters", h.ListChapters)              // GET /api/documents/{id}/chapters
 		r.Get("/{id}/chapters/{index}", h.GetChapterContent) // GET /api/documents/{id}/chapters/{index}
+		r.Get("/{id}/cover", h.ServeCover)                   // GET /api/documents/{id}/cover
 	})
 }
 
@@ -65,7 +67,7 @@ func (h *DocumentHandler) UploadDocument(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	respondJSON(w, http.StatusCreated, doc)
+	respondJSON(w, http.StatusAccepted, doc)
 }
 
 // ListDocuments handles GET /api/documents — lists all documents.
@@ -143,6 +145,43 @@ func (h *DocumentHandler) GetChapterContent(w http.ResponseWriter, r *http.Reque
 	}
 
 	respondJSON(w, http.StatusOK, chapter)
+}
+
+// ServeCover handles GET /api/documents/{id}/cover — serves the cover image.
+func (h *DocumentHandler) ServeCover(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	doc, err := h.svc.GetDocument(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			respondError(w, http.StatusNotFound, "document not found")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "internal server error")
+		return
+	}
+
+	if doc.CoverPath == "" {
+		respondError(w, http.StatusNotFound, "no cover available")
+		return
+	}
+
+	reader, err := h.svc.GetCover(r.Context(), doc.CoverPath)
+	if err != nil {
+		respondError(w, http.StatusNotFound, "cover not found")
+		return
+	}
+	defer reader.Close()
+
+	buf := make([]byte, 512)
+	n, _ := reader.Read(buf)
+	contentType := http.DetectContentType(buf[:n])
+
+	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Cache-Control", "public, max-age=86400")
+	w.WriteHeader(http.StatusOK)
+	w.Write(buf[:n])
+	io.Copy(w, reader)
 }
 
 // ── Response helpers ────────────────────────────────────────────────────────────

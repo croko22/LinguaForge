@@ -35,13 +35,18 @@ type Package struct {
 			Text string `xml:",chardata"`
 			Role string `xml:"role,attr"`
 		} `xml:"http://purl.org/dc/elements/1.1/ creator"`
-		Language string `xml:"http://purl.org/dc/elements/1.1/ language"`
+		Language  string `xml:"http://purl.org/dc/elements/1.1/ language"`
+		MetaItems []struct {
+			Name    string `xml:"name,attr"`
+			Content string `xml:"content,attr"`
+		} `xml:"meta"`
 	} `xml:"metadata"`
 	Manifest struct {
 		Items []struct {
-			ID   string `xml:"id,attr"`
-			Href string `xml:"href,attr"`
-			Type string `xml:"media-type,attr"`
+			ID         string `xml:"id,attr"`
+			Href       string `xml:"href,attr"`
+			Type       string `xml:"media-type,attr"`
+			Properties string `xml:"properties,attr"`
 		} `xml:"item"`
 	} `xml:"manifest"`
 	Spine struct {
@@ -112,6 +117,8 @@ func (p *EpubParser) Parse(readerAt ReaderAt, size int64) (*model.ParsedDocument
 	manifestHrefs := buildManifestHrefs(pkg, opfBaseDir)
 
 	doc := extractMetadata(pkg)
+
+	doc.CoverImageData = extractCoverImage(&pkg, manifestHrefs, zipFiles, opfBaseDir)
 
 	spineHrefs := buildSpineHrefs(pkg, manifestHrefs)
 
@@ -446,6 +453,60 @@ func detectEncoding(data []byte) string {
 		return string(matches[1])
 	}
 	return "utf-8"
+}
+
+// ── Cover image extraction ────────────────────────────────────────────────────
+
+// extractCoverImage extracts the cover image from an EPUB using three strategies:
+//  1. Manifest item with properties="cover-image" (EPUB 3)
+//  2. <meta name="cover" content="..."> pointing to a manifest item (EPUB 2/3)
+//  3. Item with id="cover" or id="cover-image" convention
+func extractCoverImage(pkg *Package, manifestHrefs map[string]string, zipFiles map[string]*zip.File, opfBaseDir string) []byte {
+	// Strategy 1: properties="cover-image" (EPUB 3)
+	for _, item := range pkg.Manifest.Items {
+		if strings.Contains(strings.ToLower(item.Properties), "cover-image") {
+			if data := readCoverZipFile(zipFiles, path.Join(opfBaseDir, item.Href)); data != nil {
+				return data
+			}
+		}
+	}
+
+	// Strategy 2: <meta name="cover" content="..."> (EPUB 2/3)
+	for _, m := range pkg.Metadata.MetaItems {
+		if strings.ToLower(m.Name) == "cover" {
+			if href, ok := manifestHrefs[m.Content]; ok {
+				if data := readCoverZipFile(zipFiles, href); data != nil {
+					return data
+				}
+			}
+		}
+	}
+
+	// Strategy 3: id="cover" or id="cover-image" convention
+	for _, item := range pkg.Manifest.Items {
+		id := strings.ToLower(item.ID)
+		if id == "cover" || id == "cover-image" {
+			if data := readCoverZipFile(zipFiles, path.Join(opfBaseDir, item.Href)); data != nil {
+				return data
+			}
+		}
+	}
+
+	return nil
+}
+
+// readCoverZipFile tries to read a file from the zip index, normalizing
+// path separators. Returns nil on any error (caller treats missing cover
+// as non-fatal).
+func readCoverZipFile(zipFiles map[string]*zip.File, filePath string) []byte {
+	normalized := strings.ReplaceAll(filePath, "\\", "/")
+	if f, ok := zipFiles[normalized]; ok {
+		data, err := readZipFileEntry(f)
+		if err == nil {
+			return data
+		}
+	}
+	return nil
 }
 
 // ── ZIP helpers ──────────────────────────────────────────────────────────────
