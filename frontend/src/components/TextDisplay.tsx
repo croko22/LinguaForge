@@ -24,7 +24,7 @@ export default function TextDisplay({ content, onWordClick }: TextDisplayProps) 
             <span
               key={`${pIdx}-${wIdx}`}
               onClick={(e) => onWordClick(word, e)}
-              className="cursor-pointer hover:bg-yellow-100 rounded px-0.5 transition-colors"
+              className="cursor-pointer hover:bg-yellow-100/50 rounded px-0.5 transition-colors"
             >
               {word}{' '}
             </span>

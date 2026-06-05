@@ -5,7 +5,6 @@ import ReviewCard from '../components/ReviewCard'
 export default function ReviewPage() {
   const { data, isLoading, isError } = useDueWords()
   const submitReview = useSubmitReview()
-  const [queue, setQueue] = useState<string[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
 
   const words = data?.words ?? []
