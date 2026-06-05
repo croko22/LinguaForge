@@ -57,12 +57,12 @@ describe('ReaderPage', () => {
 
   it('renders the document title as heading', async () => {
     renderWithProviders(<ReaderPage />)
-    expect(await screen.findByText('Introduction')).toBeInTheDocument()
+    const heading = await screen.findByRole('heading', { level: 1 })
+    expect(heading).toHaveTextContent('Introduction')
   })
 
   it('renders chapter content text', async () => {
     renderWithProviders(<ReaderPage />)
-    // TextDisplay splits into word spans; check that individual words are rendered
     expect(await screen.findByText('first')).toBeInTheDocument()
     expect(await screen.findByText('chapter')).toBeInTheDocument()
     expect(await screen.findByText('content.')).toBeInTheDocument()
@@ -85,18 +85,16 @@ describe('ReaderPage', () => {
     renderWithProviders(<ReaderPage />)
 
     await user.click(await screen.findByRole('button', { name: /next/i }))
-    expect(await screen.findByText(/Chapter 1 content/i)).toBeInTheDocument()
+    expect(await screen.findByText(/Chapter 1/i)).toBeInTheDocument()
   })
 
   it('clicking a word adds it to the word panel', async () => {
     const user = userEvent.setup()
     renderWithProviders(<ReaderPage />)
 
-    // Click a word in the text
     const word = await screen.findByText('first')
     await user.click(word)
 
-    // Word should appear in the panel
     expect(screen.getAllByText('first')[0]).toBeInTheDocument()
   })
 
@@ -107,11 +105,10 @@ describe('ReaderPage', () => {
   const word = await screen.findByText('first')
   await user.click(word)
 
-  // Popover with listen button should appear
   expect(screen.getByRole('button', { name: /listen/i })).toBeInTheDocument()
 })
 
-  it('shows word count in panel after clicking words', async () => {
+  it('shows vocabulary panel after clicking words', async () => {
     const user = userEvent.setup()
     renderWithProviders(<ReaderPage />)
 
@@ -120,7 +117,7 @@ describe('ReaderPage', () => {
     const chapter = await screen.findByText('chapter')
     await user.click(chapter)
 
-    expect(screen.getByText(/2 words/i)).toBeInTheDocument()
+    expect(screen.getByText(/vocabulary/i)).toBeInTheDocument()
   })
 
   it('clear button removes all words from panel', async () => {
@@ -129,16 +126,14 @@ describe('ReaderPage', () => {
 
     const word = await screen.findByText('first')
     await user.click(word)
-    expect(screen.getByText(/1 word/i)).toBeInTheDocument()
+    expect(screen.getAllByText('first').length).toBeGreaterThanOrEqual(2)
 
     await user.click(screen.getByRole('button', { name: /clear/i }))
-    expect(screen.getByText(/click a word/i)).toBeInTheDocument()
+    expect(screen.getByText(/any word/i)).toBeInTheDocument()
   })
 
   it('shows error state when document not found', async () => {
-    // Mock chapter content to fail
     vi.mocked(api.fetchChapterContent).mockRejectedValue(new Error('not found'))
-    // Also mock chapters to fail (indicates doc not found)
     vi.mocked(api.fetchChapters).mockRejectedValue(new Error('not found'))
 
     renderWithProviders(<ReaderPage />)

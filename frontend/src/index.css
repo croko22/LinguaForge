@@ -4,16 +4,26 @@
   --reader-bg: #ffffff;
   --reader-text: #1a1a1a;
   --reader-muted: #9ca3af;
+  --reader-accent: #3b82f6;
+  --reader-hover: rgba(59, 130, 246, 0.08);
 }
 
 .reader-sepia {
   --reader-bg: #f4ecd8;
   --reader-text: #5c4b37;
   --reader-muted: #a89880;
+  --reader-accent: #c07c00;
+  --reader-hover: rgba(192, 124, 0, 0.1);
 }
 
 .reader-dark {
   --reader-bg: #1a1a2e;
   --reader-text: #e0e0e0;
   --reader-muted: #7f8c8d;
+  --reader-accent: #93c5fd;
+  --reader-hover: rgba(147, 197, 253, 0.1);
+}
+
+.theme-transition {
+  transition: background-color 0.3s ease, color 0.3s ease;
 }

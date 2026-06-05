@@ -17,7 +17,7 @@ describe('WordPanel', () => {
 
   it('shows empty state', () => {
     render(<WordPanel words={[]} onClear={vi.fn()} />)
-    expect(screen.getByText(/click a word/i)).toBeInTheDocument()
+    expect(screen.getByText(/any word/i)).toBeInTheDocument()
   })
 
   it('shows list of clicked words', () => {
@@ -27,9 +27,9 @@ describe('WordPanel', () => {
     expect(screen.getByText('sol')).toBeInTheDocument()
   })
 
-  it('shows word count badge', () => {
+  it('shows vocabulary panel heading', () => {
     render(<WordPanel words={['gato', 'casa']} onClear={vi.fn()} />)
-    expect(screen.getByText(/2 words/i)).toBeInTheDocument()
+    expect(screen.getByText(/vocabulary/i)).toBeInTheDocument()
   })
 
   it('calls onClear when clear button clicked', async () => {
@@ -39,5 +39,13 @@ describe('WordPanel', () => {
 
     await user.click(screen.getByRole('button', { name: /clear/i }))
     expect(onClear).toHaveBeenCalledOnce()
+  })
+
+  it('deduplicates repeated words and shows count badge', () => {
+    render(<WordPanel words={['gato', 'gato', 'casa']} onClear={vi.fn()} />)
+    expect(screen.getByText('casa')).toBeInTheDocument()
+    const gatoElements = screen.getAllByText('gato')
+    expect(gatoElements).toHaveLength(1)
+    expect(screen.getByText('×2')).toBeInTheDocument()
   })
 })

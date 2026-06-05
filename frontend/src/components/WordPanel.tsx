@@ -6,7 +6,7 @@ interface WordPanelProps {
   onClear: () => void
 }
 
-function WordItem({ word }: { word: string }) {
+function WordItem({ word, count }: { word: string; count: number }) {
   const [translation, setTranslation] = useState<string | null>(null)
 
   useEffect(() => {
@@ -21,38 +21,52 @@ function WordItem({ word }: { word: string }) {
   }, [word])
 
   return (
-    <li className="text-sm border-b pb-1">
-      <span className="font-medium">{word}</span>
-      <p className="text-xs text-gray-400">{translation ?? 'Translating...'}</p>
+    <li className="group flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-default">
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="font-semibold text-sm truncate">{word}</span>
+        {count > 1 && (
+          <span className="text-[10px] bg-gray-200 text-gray-600 px-1.5 py-0.5 rounded-full leading-none font-medium">
+            ×{count}
+          </span>
+        )}
+      </div>
+      <span className="text-xs text-gray-400 italic truncate ml-2 shrink-0">
+        {translation ?? '...'}
+      </span>
     </li>
   )
 }
 
 export default function WordPanel({ words, onClear }: WordPanelProps) {
+  const unique = words.reduce<{ word: string; count: number }[]>((acc, w) => {
+    const existing = acc.find(item => item.word === w)
+    if (existing) existing.count++
+    else acc.push({ word: w, count: 1 })
+    return acc
+  }, [])
+
   return (
     <div>
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="font-semibold text-sm uppercase tracking-wide text-gray-500">
-          Words <span className="ml-1 text-xs bg-gray-200 rounded-full px-2 py-0.5">{words.length} words</span>
+      <div className="flex items-center justify-between mb-2 px-1">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+          Vocabulary
+          <span className="ml-1.5 text-[10px] bg-gray-200 text-gray-500 rounded-full px-1.5 py-0.5 leading-none">{words.length}</span>
         </h2>
         {words.length > 0 && (
-          <button onClick={onClear} className="text-xs text-red-500 hover:text-red-700">
-            Clear
+          <button onClick={onClear} className="text-[11px] text-gray-400 hover:text-red-500 transition-colors">
+            Clear all
           </button>
         )}
       </div>
       {words.length === 0 ? (
-        <p className="text-sm text-gray-400">Click a word to add it here</p>
+        <p className="text-sm text-gray-400 px-1">Click any word to look it up</p>
       ) : (
-        <ul className="space-y-2">
-          {words.map((word, idx) => (
-            <WordItem key={`${word}-${idx}`} word={word} />
+        <ul className="space-y-0.5">
+          {unique.map(({ word, count }) => (
+            <WordItem key={word} word={word} count={count} />
           ))}
         </ul>
       )}
     </div>
   )
 }
-// TODO: Add SRS status indicator per word. The GET /api/words endpoint returns SavedWord without
-// review card status. Need a joined endpoint or separate status fetch to show color dots
-// (yellow=new, blue=learning, green=review) and next review relative time.

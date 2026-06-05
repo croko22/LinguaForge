@@ -87,52 +87,72 @@ export default function ReaderPage() {
   const themeClass = theme === 'light' ? 'reader-light' : theme === 'sepia' ? 'reader-sepia' : 'reader-dark';
 
   return (
-    <div className="flex h-screen">
-      {/* Text area */}
+    <div className="flex h-screen bg-white">
+      {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        {/* Chapter header */}
-        <div className="border-b p-4 flex items-center justify-between">
-          <h1 className="text-xl font-semibold">{chapter.chapter_title}</h1>
+        {/* Header - neutral bg, never changes with theme */}
+        <header className="bg-white border-b px-4 py-2 flex items-center justify-between shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
+            <a
+              href="/"
+              className="text-gray-400 hover:text-gray-600 transition-colors shrink-0"
+              title="Back to library"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+              </svg>
+            </a>
+            <h1 className="text-base font-semibold truncate text-gray-900">{chapter.chapter_title}</h1>
+          </div>
+
           <div className="flex items-center gap-2">
             <button
               onClick={() => goTo(currentChapter - 1)}
               disabled={!hasPrev}
-              className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 hover:border-gray-300 transition-all"
             >
-              Prev
+              ← Prev
             </button>
             <select
               value={currentChapter}
               onChange={(e) => goTo(parseInt(e.target.value, 10))}
-              className="border rounded px-2 py-1"
+              className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white hover:border-gray-300 transition-colors"
             >
               {chapters?.map((ch) => (
                 <option key={ch.chapter_index} value={ch.chapter_index}>
-                  {ch.chapter_title} content
+                  {ch.chapter_title}
                 </option>
               ))}
             </select>
             <button
               onClick={() => goTo(currentChapter + 1)}
               disabled={!hasNext}
-              className="px-3 py-1 border rounded disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
+              className="px-3 py-1.5 border border-gray-200 rounded-lg text-sm text-gray-600 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-gray-100 hover:border-gray-300 transition-all"
             >
-              Next
+              Next →
             </button>
+          </div>
+
+          <div className="relative">
             <button
               onClick={() => setShowSettings(s => !s)}
-              className="px-2 py-1 border rounded hover:bg-gray-50 text-sm"
+              className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500"
               title="Reader settings"
-            >⚙️</button>
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+            </button>
+            {showSettings && <SettingsPanel onClose={() => setShowSettings(false)} />}
           </div>
-        </div>
+        </header>
 
-        {/* Chapter content */}
+        {/* Content - themed canvas */}
         <div
-          className={`flex-1 overflow-y-auto p-6 ${themeClass}`}
+          className={`flex-1 overflow-y-auto px-8 py-6 theme-transition ${themeClass}`}
           style={{ backgroundColor: 'var(--reader-bg)', color: 'var(--reader-text)' }}
         >
-          {showSettings && <SettingsPanel />}
           <div style={{ fontSize: `${fontSize}rem`, lineHeight: lineHeight }}>
             <TextDisplay
               content={chapter.content}
@@ -154,10 +174,12 @@ export default function ReaderPage() {
         )}
       </div>
 
-      {/* Word panel */}
-      <div className="w-80 border-l p-4 overflow-y-auto">
-        <WordPanel words={clickedWords} onClear={() => setClickedWords([])} />
-      </div>
+      {/* Sidebar - neutral bg */}
+      <aside className="w-80 border-l bg-gray-50 flex flex-col overflow-y-auto">
+        <div className="p-4">
+          <WordPanel words={clickedWords} onClear={() => setClickedWords([])} />
+        </div>
+      </aside>
     </div>
   );
 }

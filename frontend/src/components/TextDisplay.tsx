@@ -17,14 +17,14 @@ export default function TextDisplay({ content, onWordClick }: TextDisplayProps) 
   }
 
   return (
-    <div className="leading-relaxed text-lg">
+    <div className="leading-relaxed">
       {paragraphs.map((para, pIdx) => (
         <p key={pIdx} className="mb-4">
           {splitIntoWords(para).map((word, wIdx) => (
             <span
               key={`${pIdx}-${wIdx}`}
               onClick={(e) => onWordClick(word, e)}
-              className="cursor-pointer hover:bg-yellow-100/50 rounded px-0.5 transition-colors"
+              className="cursor-pointer hover:bg-amber-100/60 rounded px-0.5 transition-all"
             >
               {word}{' '}
             </span>
