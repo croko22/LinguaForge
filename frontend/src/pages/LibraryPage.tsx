@@ -58,7 +58,7 @@ export default function LibraryPage() {
             {!isUploadOpen && (
               <button
                 onClick={() => setIsUploadOpen(true)}
-                className="bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium flex items-center gap-2"
+                className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition-colors font-medium flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -142,7 +142,7 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
       <p className="text-gray-500 mb-6">Could not fetch your documents. Please try again.</p>
       <button
         onClick={onRetry}
-        className="bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium"
+        className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition-colors font-medium"
       >
         Try Again
       </button>
@@ -158,7 +158,7 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
       <p className="text-gray-500 mb-6">Upload your first EPUB to start reading</p>
       <button
         onClick={onUpload}
-        className="bg-blue-600 text-white px-5 py-2.5 rounded-xl hover:bg-blue-700 transition-colors font-medium"
+        className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition-colors font-medium"
       >
         Upload your first book
       </button>

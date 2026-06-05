@@ -9,7 +9,7 @@ function NavBadge() {
   const { data: count } = useDueCount()
   if (!count || count === 0) return null
   return (
-    <span className="inline-flex items-center justify-center w-5 h-5 text-[11px] font-bold bg-white text-indigo-600 rounded-full">
+    <span className="inline-flex items-center justify-center w-5 h-5 text-[11px] font-bold bg-white text-emerald-600 rounded-full">
       {count > 99 ? '99+' : count}
     </span>
   )
@@ -23,7 +23,7 @@ function App() {
       <nav className="sticky top-0 z-30 backdrop-blur-md bg-white/80 border-b border-gray-200 px-6 py-3 flex items-center justify-between">
         <Link
           to="/"
-          className={`font-bold text-lg transition-colors ${pathname === '/' ? 'text-indigo-600' : 'text-gray-900 hover:text-indigo-600'}`}
+          className={`font-bold text-lg transition-colors ${pathname === '/' ? 'text-emerald-600' : 'text-gray-900 hover:text-emerald-600'}`}
         >
           LinguaForge
         </Link>
@@ -32,8 +32,8 @@ function App() {
             to="/review"
             className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
               pathname === '/review'
-                ? 'bg-indigo-700 text-white'
-                : 'bg-indigo-600 text-white hover:bg-indigo-700'
+                ? 'bg-emerald-700 text-white'
+                : 'bg-emerald-600 text-white hover:bg-emerald-700'
             }`}
           >
             Review
@@ -43,7 +43,7 @@ function App() {
             to="/settings"
             className={`p-2 rounded-full transition-colors ${
               pathname === '/settings'
-                ? 'text-indigo-600 bg-indigo-50'
+                ? 'text-emerald-600 bg-emerald-50'
                 : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
             }`}
             title="Settings"
