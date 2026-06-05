@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, type MouseEvent } from "react";
 import { useParams } from "react-router-dom";
 import { useChapters, useChapterContent } from "../hooks/useReader";
 import { useReaderSettings } from "../store/readerSettings";
+import { getReadingProgress, setReadingProgress } from "../hooks/useReadingProgress";
 import TextDisplay from "../components/TextDisplay";
 import WordPopover from "../components/WordPopover";
 import WordPanel from "../components/WordPanel";
@@ -10,9 +11,14 @@ import { loadWords, saveWord } from "../api/words";
 
 export default function ReaderPage() {
   const { id, chapterIndex: chapterIndexParam } = useParams();
-  const [currentChapter, setCurrentChapter] = useState(() =>
-    parseInt(chapterIndexParam ?? "0", 10)
-  );
+  const [currentChapter, setCurrentChapter] = useState(() => {
+    if (chapterIndexParam) return parseInt(chapterIndexParam, 10)
+    if (id) {
+      const saved = getReadingProgress(id)
+      if (saved !== null) return saved
+    }
+    return 0
+  });
   const [showSettings, setShowSettings] = useState(false);
   const { theme, fontSize, lineHeight } = useReaderSettings();
 
@@ -35,7 +41,8 @@ export default function ReaderPage() {
     setSelectedWord(null);
     setPopoverPos(null);
     setCurrentChapter(index);
-  }, []);
+    if (id) setReadingProgress(id, index);
+  }, [id]);
 
   const totalChapters = chapters?.length ?? 0;
   const hasPrev = currentChapter > 0;
