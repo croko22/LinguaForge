@@ -149,9 +149,15 @@ func openEPUB(readerAt ReaderAt, size int64) (map[string]*zip.File, error) {
 	if err != nil {
 		return nil, fmt.Errorf("epub: failed to open zip: %w", err)
 	}
-	zipFiles := make(map[string]*zip.File, len(zipReader.File))
+	zipFiles := make(map[string]*zip.File, len(zipReader.File)*2)
 	for _, f := range zipReader.File {
 		zipFiles[f.Name] = f
+		lower := strings.ToLower(f.Name)
+		if lower != f.Name {
+			if _, exists := zipFiles[lower]; !exists {
+				zipFiles[lower] = f
+			}
+		}
 	}
 	return zipFiles, nil
 }
@@ -514,6 +520,9 @@ func readCoverZipFile(zipFiles map[string]*zip.File, filePath string) []byte {
 // readZipFile reads a file from the zip index by name.
 func readZipFile(files map[string]*zip.File, name string) ([]byte, error) {
 	f, ok := files[name]
+	if !ok {
+		f, ok = files[strings.ToLower(name)]
+	}
 	if !ok {
 		return nil, fmt.Errorf("file not found in zip: %s", name)
 	}

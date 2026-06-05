@@ -15,6 +15,7 @@ type DocumentRepository interface {
 	List(ctx context.Context) ([]*model.DocumentSummary, error)
 	UpdateStatus(ctx context.Context, id, status string, errMsg ...string) error
 	UpdateMetadata(ctx context.Context, doc *model.Document) error
+	Delete(ctx context.Context, id string) error
 }
 
 type documentRepo struct {
@@ -191,6 +192,57 @@ func (r *documentRepo) UpdateMetadata(ctx context.Context, doc *model.Document) 
 	}
 	if rows == 0 {
 		return fmt.Errorf("document not found: %w", sql.ErrNoRows)
+	}
+	return nil
+}
+
+func (r *documentRepo) Delete(ctx context.Context, id string) error {
+	if err := r.deleteWordReviews(ctx, id); err != nil {
+		return fmt.Errorf("delete word reviews: %w", err)
+	}
+	if err := r.deleteSavedWords(ctx, id); err != nil {
+		return fmt.Errorf("delete saved words: %w", err)
+	}
+	if err := r.deleteChapters(ctx, id); err != nil {
+		return fmt.Errorf("delete chapters: %w", err)
+	}
+	result, err := r.db.ExecContext(ctx, "DELETE FROM documents WHERE id = ?", id)
+	if err != nil {
+		return fmt.Errorf("delete document: %w", err)
+	}
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("delete document rows affected: %w", err)
+	}
+	if rows == 0 {
+		return fmt.Errorf("document not found: %w", sql.ErrNoRows)
+	}
+	return nil
+}
+
+func (r *documentRepo) deleteWordReviews(ctx context.Context, documentID string) error {
+	_, err := r.db.ExecContext(ctx,
+		"DELETE FROM word_reviews WHERE word_id IN (SELECT id FROM saved_words WHERE document_id = ?)",
+		documentID,
+	)
+	if err != nil {
+		return fmt.Errorf("delete word reviews: %w", err)
+	}
+	return nil
+}
+
+func (r *documentRepo) deleteSavedWords(ctx context.Context, documentID string) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM saved_words WHERE document_id = ?", documentID)
+	if err != nil {
+		return fmt.Errorf("delete saved words: %w", err)
+	}
+	return nil
+}
+
+func (r *documentRepo) deleteChapters(ctx context.Context, documentID string) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM document_chapters WHERE document_id = ?", documentID)
+	if err != nil {
+		return fmt.Errorf("delete chapters: %w", err)
 	}
 	return nil
 }

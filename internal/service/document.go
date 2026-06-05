@@ -179,6 +179,11 @@ func (s *DocumentService) ProcessBook(ctx context.Context, job worker.Job) error
 		}
 		return fmt.Errorf("process book: parse: %w", err)
 	}
+	if len(parsedDoc.Chapters) == 0 {
+		errMsg := "parse succeeded but no chapters found"
+		_ = s.docRepo.UpdateStatus(ctx, job.DocID, model.StatusError, errMsg)
+		return fmt.Errorf("process book: %s", errMsg)
+	}
 
 	now := time.Now().UTC()
 	chapters := make([]*model.Chapter, 0, len(parsedDoc.Chapters))
@@ -248,6 +253,27 @@ func (s *DocumentService) GetDocument(ctx context.Context, id string) (*model.Do
 		return nil, fmt.Errorf("get document: %w", err)
 	}
 	return doc, nil
+}
+
+// DeleteDocument deletes a document, its chapters, saved words, and review cards.
+func (s *DocumentService) DeleteDocument(ctx context.Context, id string) error {
+	doc, err := s.docRepo.GetByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("delete document: %w", err)
+	}
+
+	if err := s.docRepo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("delete document: %w", err)
+	}
+
+	if doc.StoragePath != "" {
+		_ = s.storage.Delete(ctx, doc.StoragePath)
+	}
+	if doc.CoverPath != "" {
+		_ = s.storage.Delete(ctx, doc.CoverPath)
+	}
+
+	return nil
 }
 
 // GetCover opens a cover image file for reading by its storage path.

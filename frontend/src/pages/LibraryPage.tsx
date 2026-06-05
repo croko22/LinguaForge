@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDocuments, useUploadDocument } from "../hooks/useDocuments";
+import { useDocuments, useUploadDocument, useDeleteDocument } from "../hooks/useDocuments";
 import UploadDialog from "../components/UploadDialog";
 import { API_BASE } from "../api/config";
 import type { DocumentSummary } from "../api/documents";
@@ -165,6 +165,19 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
 }
 
 function DocumentList({ documents, onDocumentClick }: { documents: DocumentSummary[]; onDocumentClick: (id: string) => void }) {
+  const deleteMutation = useDeleteDocument()
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
+
+  const handleDelete = (e: React.MouseEvent, docId: string) => {
+    e.stopPropagation()
+    if (confirmDeleteId === docId) {
+      deleteMutation.mutate(docId)
+      setConfirmDeleteId(null)
+    } else {
+      setConfirmDeleteId(docId)
+      setTimeout(() => setConfirmDeleteId(null), 3000)
+    }
+  }
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
       <table className="w-full">
@@ -175,6 +188,7 @@ function DocumentList({ documents, onDocumentClick }: { documents: DocumentSumma
             <th className="px-6 py-3">Chapters</th>
             <th className="px-6 py-3">Language</th>
             <th className="px-6 py-3">Status</th>
+            <th className="px-6 py-3 w-16"></th>
           </tr>
         </thead>
         <tbody>
@@ -212,6 +226,19 @@ function DocumentList({ documents, onDocumentClick }: { documents: DocumentSumma
                   {doc.status}
                 </span>
               </td>
+              <td className="px-6 py-4">
+                <button
+                  onClick={(e) => handleDelete(e, doc.id)}
+                  className={`transition-colors ${
+                    confirmDeleteId === doc.id ? 'text-red-500' : 'text-gray-400 hover:text-red-500'
+                  }`}
+                  title={confirmDeleteId === doc.id ? 'Click again to confirm' : 'Delete'}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-2a1 1 0 00-1 1v3m-4 0h14" />
+                  </svg>
+                </button>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -227,15 +254,28 @@ function DocumentCard({
   document: DocumentSummary;
   onClick: () => void;
 }) {
+  const deleteMutation = useDeleteDocument()
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const coverUrl = doc.cover_url
     ? `${API_BASE}/documents/${doc.id}/cover`
     : null;
 
   const isProcessing = doc.status === "processing" || doc.status === "pending";
 
+  const handleDelete = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (confirmDelete) {
+      deleteMutation.mutate(doc.id)
+      setConfirmDelete(false)
+    } else {
+      setConfirmDelete(true)
+      setTimeout(() => setConfirmDelete(false), 3000)
+    }
+  }
+
   return (
     <div
-      className="bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden border border-gray-100 hover:border-gray-200 hover:-translate-y-0.5"
+      className="group bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden border border-gray-100 hover:border-gray-200 hover:-translate-y-0.5 relative"
       onClick={onClick}
     >
       {coverUrl ? (
@@ -249,6 +289,19 @@ function DocumentCard({
           <span className="text-5xl">📖</span>
         </div>
       )}
+      <button
+        onClick={handleDelete}
+        className={`absolute top-2 right-2 p-1.5 rounded-full transition-all ${
+          confirmDelete
+            ? 'bg-red-500 text-white opacity-100'
+            : 'bg-white/80 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100'
+        }`}
+        title={confirmDelete ? 'Click again to confirm' : 'Delete'}
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-2a1 1 0 00-1 1v3m-4 0h14" />
+        </svg>
+      </button>
       <div className="p-4">
         <h3 className="font-semibold text-base line-clamp-2 text-gray-900 mb-2">
           {doc.title}

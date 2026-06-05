@@ -1,4 +1,4 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 
 interface UploadDialogProps {
   open: boolean
@@ -8,13 +8,18 @@ interface UploadDialogProps {
 
 export default function UploadDialog({ open, onClose, onUpload }: UploadDialogProps) {
   const fileRef = useRef<HTMLInputElement>(null)
+  const [uploading, setUploading] = useState(false)
 
   if (!open) return null
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     const file = fileRef.current?.files?.[0]
-    if (file) {
-      onUpload(file)
+    if (!file || uploading) return
+    setUploading(true)
+    try {
+      await onUpload(file)
+    } finally {
+      setUploading(false)
     }
   }
 
@@ -32,20 +37,23 @@ export default function UploadDialog({ open, onClose, onUpload }: UploadDialogPr
             type="file"
             accept=".epub"
             className="w-full border rounded px-3 py-2"
+            disabled={uploading}
           />
         </div>
         <div className="flex justify-end gap-2">
           <button
             onClick={onClose}
-            className="px-4 py-2 border rounded hover:bg-gray-50"
+            disabled={uploading}
+            className="px-4 py-2 border rounded hover:bg-gray-50 disabled:opacity-50"
           >
             Cancel
           </button>
           <button
             onClick={handleUpload}
-            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+            disabled={uploading}
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
           >
-            Upload
+            {uploading ? 'Uploading...' : 'Upload'}
           </button>
         </div>
       </div>

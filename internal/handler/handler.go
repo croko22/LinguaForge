@@ -33,6 +33,7 @@ func (h *DocumentHandler) RegisterRoutes(r chi.Router) {
 		r.Post("/", h.UploadDocument)                        // POST /api/documents
 		r.Get("/", h.ListDocuments)                          // GET /api/documents
 		r.Get("/{id}", h.GetDocument)                        // GET /api/documents/{id}
+		r.Delete("/{id}", h.DeleteDocument)                  // DELETE /api/documents/{id}
 		r.Get("/{id}/chapters", h.ListChapters)              // GET /api/documents/{id}/chapters
 		r.Get("/{id}/chapters/{index}", h.GetChapterContent) // GET /api/documents/{id}/chapters/{index}
 		r.Get("/{id}/cover", h.ServeCover)                   // GET /api/documents/{id}/cover
@@ -100,6 +101,26 @@ func (h *DocumentHandler) GetDocument(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondJSON(w, http.StatusOK, doc)
+}
+
+// DeleteDocument handles DELETE /api/documents/{id} — deletes a document and its data.
+func (h *DocumentHandler) DeleteDocument(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+	if id == "" {
+		respondError(w, http.StatusBadRequest, "document id is required")
+		return
+	}
+
+	if err := h.svc.DeleteDocument(r.Context(), id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			respondError(w, http.StatusNotFound, "document not found")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "failed to delete document")
+		return
+	}
+
+	w.WriteHeader(http.StatusNoContent)
 }
 
 // ListChapters handles GET /api/documents/{id}/chapters — lists chapters (summary only).

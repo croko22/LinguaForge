@@ -38,6 +38,11 @@ export async function fetchChapters(documentId: string): Promise<Chapter[]> {
   return res.json()
 }
 
+export async function deleteDocument(id: string): Promise<void> {
+  const res = await fetch(`${API_BASE}/documents/${id}`, { method: 'DELETE' })
+  if (!res.ok) throw new Error('Failed to delete document')
+}
+
 export async function fetchChapterContent(documentId: string, chapterIndex: number): Promise<ChapterContent> {
   const res = await fetch(`${API_BASE}/documents/${documentId}/chapters/${chapterIndex}`)
   if (!res.ok) throw new Error('Failed to fetch chapter content')

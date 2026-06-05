@@ -10,6 +10,7 @@ import type { DocumentSummary } from '../api/documents'
 vi.mock('../api/documents', () => ({
   fetchDocuments: vi.fn(),
   uploadDocument: vi.fn(),
+  deleteDocument: vi.fn(),
 }))
 
 vi.mock('../api/config', () => ({
