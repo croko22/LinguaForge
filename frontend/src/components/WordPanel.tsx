@@ -53,3 +53,6 @@ export default function WordPanel({ words, onClear }: WordPanelProps) {
     </div>
   )
 }
+// TODO: Add SRS status indicator per word. The GET /api/words endpoint returns SavedWord without
+// review card status. Need a joined endpoint or separate status fetch to show color dots
+// (yellow=new, blue=learning, green=review) and next review relative time.

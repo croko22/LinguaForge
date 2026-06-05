@@ -4,25 +4,15 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
-	"time"
-)
 
-// SavedWord represents a word saved for study.
-type SavedWord struct {
-	ID          string    `json:"id"`
-	DocumentID  string    `json:"document_id"`
-	Word        string    `json:"word"`
-	Translation string    `json:"translation"`
-	SourceLang  string    `json:"source_lang"`
-	TargetLang  string    `json:"target_lang"`
-	CreatedAt   time.Time `json:"created_at"`
-}
+	"github.com/croko/language-app/internal/model"
+)
 
 // WordRepository defines persistence operations for saved words.
 type WordRepository interface {
-	Save(ctx context.Context, word *SavedWord) error
-	ListByDocument(ctx context.Context, documentID string) ([]*SavedWord, error)
-	ListAll(ctx context.Context) ([]*SavedWord, error)
+	Save(ctx context.Context, word *model.SavedWord) error
+	ListByDocument(ctx context.Context, documentID string) ([]*model.SavedWord, error)
+	ListAll(ctx context.Context) ([]*model.SavedWord, error)
 	Delete(ctx context.Context, id string) error
 }
 
@@ -35,7 +25,7 @@ func NewWordRepository(db *sql.DB) WordRepository {
 	return &wordRepo{db: db}
 }
 
-func (r *wordRepo) Save(ctx context.Context, word *SavedWord) error {
+func (r *wordRepo) Save(ctx context.Context, word *model.SavedWord) error {
 	query := `INSERT INTO saved_words (id, document_id, word, translation, source_lang, target_lang, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`
 	_, err := r.db.ExecContext(ctx, query, word.ID, word.DocumentID, word.Word, word.Translation, word.SourceLang, word.TargetLang, word.CreatedAt)
 	if err != nil {
@@ -44,7 +34,7 @@ func (r *wordRepo) Save(ctx context.Context, word *SavedWord) error {
 	return nil
 }
 
-func (r *wordRepo) ListByDocument(ctx context.Context, documentID string) ([]*SavedWord, error) {
+func (r *wordRepo) ListByDocument(ctx context.Context, documentID string) ([]*model.SavedWord, error) {
 	query := `SELECT id, document_id, word, translation, source_lang, target_lang, created_at FROM saved_words WHERE document_id = ? ORDER BY created_at DESC`
 	rows, err := r.db.QueryContext(ctx, query, documentID)
 	if err != nil {
@@ -52,9 +42,9 @@ func (r *wordRepo) ListByDocument(ctx context.Context, documentID string) ([]*Sa
 	}
 	defer rows.Close()
 
-	var words []*SavedWord
+	var words []*model.SavedWord
 	for rows.Next() {
-		w := &SavedWord{}
+		w := &model.SavedWord{}
 		var createdRaw any
 		if err := rows.Scan(&w.ID, &w.DocumentID, &w.Word, &w.Translation, &w.SourceLang, &w.TargetLang, &createdRaw); err != nil {
 			return nil, fmt.Errorf("scan word: %w", err)
@@ -69,7 +59,7 @@ func (r *wordRepo) ListByDocument(ctx context.Context, documentID string) ([]*Sa
 	return words, rows.Err()
 }
 
-func (r *wordRepo) ListAll(ctx context.Context) ([]*SavedWord, error) {
+func (r *wordRepo) ListAll(ctx context.Context) ([]*model.SavedWord, error) {
 	query := `SELECT id, document_id, word, translation, source_lang, target_lang, created_at FROM saved_words ORDER BY created_at DESC`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
@@ -77,9 +67,9 @@ func (r *wordRepo) ListAll(ctx context.Context) ([]*SavedWord, error) {
 	}
 	defer rows.Close()
 
-	var words []*SavedWord
+	var words []*model.SavedWord
 	for rows.Next() {
-		w := &SavedWord{}
+		w := &model.SavedWord{}
 		var createdRaw any
 		if err := rows.Scan(&w.ID, &w.DocumentID, &w.Word, &w.Translation, &w.SourceLang, &w.TargetLang, &createdRaw); err != nil {
 			return nil, fmt.Errorf("scan word: %w", err)

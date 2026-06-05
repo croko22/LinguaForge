@@ -22,3 +22,32 @@ export interface Chapter {
 export interface ChapterContent extends Chapter {
   content: string
 }
+
+export interface DueWord {
+  id: string
+  word: string
+  translation: string
+  source_lang: string
+  target_lang: string
+  document_id: string
+  status: string
+  next_review: string
+  ease_factor: number
+  interval_days: number
+  repetitions: number
+  lapses: number
+}
+
+export interface ReviewCard {
+  id: string
+  word_id: string
+  status: string
+  ease_factor: number
+  interval_days: number
+  repetitions: number
+  lapses: number
+  next_review: string
+  last_reviewed_at: string | null
+  created_at: string
+  updated_at: string
+}

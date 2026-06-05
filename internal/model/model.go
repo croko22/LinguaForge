@@ -59,6 +59,40 @@ type ParsedChapter struct {
 	Content string
 }
 
+// SavedWord represents a word saved for study.
+type SavedWord struct {
+	ID          string    `json:"id"`
+	DocumentID  string    `json:"document_id"`
+	Word        string    `json:"word"`
+	Translation string    `json:"translation"`
+	SourceLang  string    `json:"source_lang"`
+	TargetLang  string    `json:"target_lang"`
+	CreatedAt   time.Time `json:"created_at"`
+}
+
+// ReviewStatus constants
+const (
+	ReviewStatusNew       = "new"
+	ReviewStatusLearning  = "learning"
+	ReviewStatusReview    = "review"
+	ReviewStatusSuspended = "suspended"
+)
+
+// ReviewCard represents a word's spaced repetition state.
+type ReviewCard struct {
+	ID             string     `json:"id"`
+	WordID         string     `json:"word_id"`
+	Status         string     `json:"status"`
+	EaseFactor     float64    `json:"ease_factor"`
+	IntervalDays   int        `json:"interval_days"`
+	Repetitions    int        `json:"repetitions"`
+	Lapses         int        `json:"lapses"`
+	NextReview     time.Time  `json:"next_review"`
+	LastReviewedAt *time.Time `json:"last_reviewed_at,omitempty"`
+	CreatedAt      time.Time  `json:"created_at"`
+	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
 // Document status constants
 const (
 	StatusPending    = "pending"

@@ -64,10 +64,13 @@ func main() {
 	docService.SetEnqueueFunc(pool.Enqueue)
 	docHandler := handler.NewDocumentHandler(docService)
 	wordRepo := repository.NewWordRepository(db)
-	wordService := service.NewWordService(wordRepo)
-	wordHandler := handler.NewWordHandler(wordService)
+	reviewRepo := repository.NewReviewRepository(db)
+	reviewService := service.NewReviewService(reviewRepo, wordRepo)
+	reviewHandler := handler.NewReviewHandler(reviewService)
 	transSettings := translator.DefaultSettings()
 	transProvider := translator.NewProvider(transSettings)
+	wordService := service.NewWordService(wordRepo, reviewRepo, transProvider)
+	wordHandler := handler.NewWordHandler(wordService)
 	transHandler := handler.NewTranslateHandler(translator.NewCachedTranslator(transProvider))
 	settingsHandler := handler.NewSettingsHandler(transProvider)
 
@@ -84,6 +87,7 @@ func main() {
 	r.Post("/api/words", wordHandler.SaveWord)
 	r.Get("/api/words", wordHandler.ListWords)
 	r.Delete("/api/words/{id}", wordHandler.DeleteWord)
+	reviewHandler.RegisterRoutes(r)
 
 	// 6. Health check
 	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {

@@ -1,22 +1,33 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
+	"github.com/croko/language-app/internal/model"
 	"github.com/croko/language-app/internal/repository"
 	"github.com/croko/language-app/internal/service"
+	"github.com/croko/language-app/internal/translator"
 )
+
+type mockTranslator struct{}
+
+func (m *mockTranslator) Translate(_ context.Context, req translator.TranslateRequest) (*translator.TranslateResponse, error) {
+	return &translator.TranslateResponse{Translation: req.Word + "-translated"}, nil
+}
 
 func setupWordHandler(t *testing.T) (*WordHandler, *repository.WordRepoMock) {
 	t.Helper()
-	mock := repository.NewWordRepoMock()
-	svc := service.NewWordService(mock)
+	wordMock := repository.NewWordRepoMock()
+	reviewMock := repository.NewReviewRepoMock()
+	transMock := &mockTranslator{}
+	svc := service.NewWordService(wordMock, reviewMock, transMock)
 	h := NewWordHandler(svc)
-	return h, mock
+	return h, wordMock
 }
 
 func TestWordHandler_SaveWord(t *testing.T) {
@@ -33,7 +44,7 @@ func TestWordHandler_SaveWord(t *testing.T) {
 		t.Fatalf("expected 201, got %d: %s", w.Code, w.Body.String())
 	}
 
-	var resp repository.SavedWord
+	var resp model.SavedWord
 	if err := json.NewDecoder(w.Body).Decode(&resp); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
@@ -47,7 +58,7 @@ func TestWordHandler_SaveWord(t *testing.T) {
 
 func TestWordHandler_ListWords(t *testing.T) {
 	h, mock := setupWordHandler(t)
-	mock.Seed([]*repository.SavedWord{
+	mock.Seed([]*model.SavedWord{
 		{ID: "1", Word: "hello", Translation: "hola"},
 		{ID: "2", Word: "world", Translation: "mundo"},
 	})
@@ -61,7 +72,7 @@ func TestWordHandler_ListWords(t *testing.T) {
 		t.Fatalf("expected 200, got %d", w.Code)
 	}
 
-	var words []*repository.SavedWord
+	var words []*model.SavedWord
 	json.NewDecoder(w.Body).Decode(&words)
 	if len(words) != 2 {
 		t.Fatalf("expected 2 words, got %d", len(words))

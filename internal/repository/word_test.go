@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"testing"
 	"time"
+
+	"github.com/croko/language-app/internal/model"
 )
 
 func setupWordDB(t *testing.T) *sql.DB {
@@ -27,7 +29,7 @@ func TestWordRepository_SaveAndList(t *testing.T) {
 	ctx := context.Background()
 
 	now := time.Now().UTC()
-	word := &SavedWord{
+	word := &model.SavedWord{
 		ID:          "w1",
 		DocumentID:  "doc-1",
 		Word:        "hello",
@@ -64,8 +66,8 @@ func TestWordRepository_ListAll(t *testing.T) {
 	ctx := context.Background()
 
 	now := time.Now().UTC()
-	repo.Save(ctx, &SavedWord{ID: "w1", DocumentID: "doc-1", Word: "hello", Translation: "hola", SourceLang: "en", TargetLang: "es", CreatedAt: now})
-	repo.Save(ctx, &SavedWord{ID: "w2", DocumentID: "doc-1", Word: "world", Translation: "mundo", SourceLang: "en", TargetLang: "es", CreatedAt: now})
+	repo.Save(ctx, &model.SavedWord{ID: "w1", DocumentID: "doc-1", Word: "hello", Translation: "hola", SourceLang: "en", TargetLang: "es", CreatedAt: now})
+	repo.Save(ctx, &model.SavedWord{ID: "w2", DocumentID: "doc-1", Word: "world", Translation: "mundo", SourceLang: "en", TargetLang: "es", CreatedAt: now})
 
 	words, err := repo.ListAll(ctx)
 	if err != nil {
@@ -84,7 +86,7 @@ func TestWordRepository_Delete(t *testing.T) {
 	ctx := context.Background()
 
 	now := time.Now().UTC()
-	repo.Save(ctx, &SavedWord{ID: "w1", DocumentID: "doc-1", Word: "hello", Translation: "hola", SourceLang: "en", TargetLang: "es", CreatedAt: now})
+	repo.Save(ctx, &model.SavedWord{ID: "w1", DocumentID: "doc-1", Word: "hello", Translation: "hola", SourceLang: "en", TargetLang: "es", CreatedAt: now})
 
 	if err := repo.Delete(ctx, "w1"); err != nil {
 		t.Fatalf("delete: %v", err)
