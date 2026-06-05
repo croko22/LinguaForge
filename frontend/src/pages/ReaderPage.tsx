@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, type MouseEvent } from "react";
+import { useState, useEffect, useCallback, useRef, type MouseEvent } from "react";
 import { useParams } from "react-router-dom";
 import { useChapters, useChapterContent } from "../hooks/useReader";
 import { useReaderSettings } from "../store/readerSettings";
@@ -30,6 +30,10 @@ export default function ReaderPage() {
     null,
   );
   const [clickedWords, setClickedWords] = useState<string[]>([]);
+  const [currentPage, setCurrentPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
+  const viewportRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadWords().then(words => {
@@ -37,10 +41,53 @@ export default function ReaderPage() {
     }).catch(() => {})
   }, [])
 
+  useEffect(() => {
+    setCurrentPage(0)
+  }, [chapter?.id])
+
+  useEffect(() => {
+    const calculate = () => {
+      if (!viewportRef.current || !contentRef.current) return
+      const viewportHeight = viewportRef.current.clientHeight
+      if (viewportHeight === 0) return
+      const contentHeight = contentRef.current.scrollHeight
+      setTotalPages(Math.max(1, Math.ceil(contentHeight / viewportHeight)))
+    }
+
+    calculate()
+
+    const observer = new ResizeObserver(calculate)
+    if (viewportRef.current) observer.observe(viewportRef.current)
+    return () => observer.disconnect()
+  }, [chapter, fontSize, lineHeight])
+
+  useEffect(() => {
+    if (!viewportRef.current) return
+    const viewportHeight = viewportRef.current.clientHeight
+    if (viewportHeight === 0) return
+    const clamped = Math.min(currentPage, totalPages - 1)
+    viewportRef.current.scrollTop = clamped * viewportHeight
+  }, [currentPage, totalPages])
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement).tagName
+      if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return
+      if (e.key === 'ArrowLeft') {
+        setCurrentPage(p => Math.max(0, p - 1))
+      } else if (e.key === 'ArrowRight') {
+        setCurrentPage(p => Math.min(totalPages - 1, p + 1))
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [totalPages])
+
   const goTo = useCallback((index: number) => {
     setSelectedWord(null);
     setPopoverPos(null);
     setCurrentChapter(index);
+    setCurrentPage(0);
     if (id) setReadingProgress(id, index);
   }, [id]);
 
@@ -81,6 +128,20 @@ export default function ReaderPage() {
     setClickedWords((prev) => (prev.includes(clean) ? prev : [...prev, clean]));
 
     saveWord(clean, "", id ?? "");
+  };
+
+  const handlePageTurnClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    if ((e.target as HTMLElement).closest('[data-word]')) return
+    if (!viewportRef.current) return
+    const rect = viewportRef.current.getBoundingClientRect()
+    const x = e.clientX - rect.left
+    const width = rect.width
+
+    if (x < width * 0.3) {
+      setCurrentPage(p => Math.max(0, p - 1))
+    } else if (x > width * 0.7) {
+      setCurrentPage(p => Math.min(totalPages - 1, p + 1))
+    }
   };
 
   if (!chapter) {
@@ -157,16 +218,25 @@ export default function ReaderPage() {
 
         {/* Content - themed canvas */}
         <div
-          className={`flex-1 overflow-y-auto px-8 py-6 theme-transition ${themeClass}`}
+          ref={viewportRef}
+          className={`flex-1 overflow-hidden px-4 sm:px-8 md:px-16 py-8 ${themeClass}`}
           style={{ backgroundColor: 'var(--reader-bg)', color: 'var(--reader-text)' }}
+          onClick={handlePageTurnClick}
         >
-          <div style={{ fontSize: `${fontSize}rem`, lineHeight: lineHeight }}>
+          <div ref={contentRef} style={{ fontSize: `${fontSize}rem`, lineHeight: lineHeight }}>
             <TextDisplay
               content={chapter.content}
               onWordClick={handleWordClick}
             />
           </div>
         </div>
+
+        {/* Page indicator */}
+        {totalPages > 1 && (
+          <div className="absolute bottom-3 left-1/2 -translate-x-1/2 text-xs text-[var(--reader-muted)] select-none pointer-events-none">
+            {currentPage + 1} / {totalPages}
+          </div>
+        )}
 
         {/* Word popover */}
         {selectedWord && popoverPos && (

@@ -23,6 +23,7 @@ export default function TextDisplay({ content, onWordClick }: TextDisplayProps) 
           {splitIntoWords(para).map((word, wIdx) => (
             <span
               key={`${pIdx}-${wIdx}`}
+              data-word
               onClick={(e) => onWordClick(word, e)}
               className="cursor-pointer hover:bg-amber-100/60 rounded px-0.5 transition-all"
             >
