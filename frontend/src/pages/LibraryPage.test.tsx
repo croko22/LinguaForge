@@ -86,7 +86,7 @@ describe('LibraryPage', () => {
 
     renderWithProviders(<LibraryPage />)
     await user.click(await screen.findByRole('button', { name: /try again/i }))
-    expect(await screen.findByText('Retried Book')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Retried Book/ })).toBeInTheDocument()
   })
 
   it('renders document cards with cover images', async () => {
@@ -104,14 +104,14 @@ describe('LibraryPage', () => {
     expect(img).toHaveAttribute('alt', 'Test Book')
   })
 
-  it('renders placeholder gradient when no cover image', async () => {
+  it('renders generated cover when no cover image', async () => {
     vi.mocked(api.fetchDocuments).mockResolvedValue([baseDoc])
 
     renderWithProviders(<LibraryPage />)
 
-    expect(await screen.findByText('Test Book')).toBeInTheDocument()
-    expect(screen.getByText('📖')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Test Book/ })).toBeInTheDocument()
     expect(screen.queryByRole('img')).not.toBeInTheDocument()
+    expect(screen.getAllByText('en').length).toBe(2)
   })
 
   it('navigates to reader when clicking a card', async () => {
@@ -119,7 +119,7 @@ describe('LibraryPage', () => {
     vi.mocked(api.fetchDocuments).mockResolvedValue([baseDoc])
 
     renderWithProviders(<LibraryPage />)
-    await user.click(await screen.findByText('Test Book'))
+    await user.click(await screen.findByRole('heading', { name: /Test Book/ }))
     expect(screen.getByTestId('location').textContent).toBe('/read/1/0')
   })
 
@@ -130,7 +130,7 @@ describe('LibraryPage', () => {
     renderWithProviders(<LibraryPage />)
     await user.click(await screen.findByRole('button', { name: /upload/i }))
 
-    expect(screen.getByText(/upload epub/i)).toBeInTheDocument()
+    expect(screen.getByText(/upload book/i)).toBeInTheDocument()
   })
 
   it('closes dialog when cancel is clicked', async () => {
@@ -140,10 +140,10 @@ describe('LibraryPage', () => {
     renderWithProviders(<LibraryPage />)
 
     await user.click(await screen.findByRole('button', { name: /upload/i }))
-    expect(screen.getByText(/upload epub/i)).toBeInTheDocument()
+    expect(screen.getByText(/upload book/i)).toBeInTheDocument()
 
     await user.click(screen.getByRole('button', { name: /cancel/i }))
-    expect(screen.queryByText(/upload epub/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/upload book/i)).not.toBeInTheDocument()
   })
 
   it('uploads a file and shows it in the list', async () => {
@@ -161,15 +161,15 @@ describe('LibraryPage', () => {
     await user.click(await screen.findByRole('button', { name: /upload/i }))
 
     const file = new File(['test'], 'test.epub', { type: 'application/epub+zip' })
-    const fileInput = screen.getByLabelText(/file/i)
+    const fileInput = screen.getByTestId('file-input')
     await user.upload(fileInput, file)
 
     await user.click(screen.getByRole('button', { name: /^upload$/i }))
 
     await waitFor(() => {
-      expect(screen.queryByText(/upload epub/i)).not.toBeInTheDocument()
+      expect(screen.queryByText(/upload book/i)).not.toBeInTheDocument()
     })
-    expect(await screen.findByText('Uploaded Book')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: /Uploaded Book/ })).toBeInTheDocument()
   })
 
   describe('status color-coding', () => {
@@ -228,7 +228,8 @@ describe('LibraryPage', () => {
     it('shows language when provided', async () => {
       vi.mocked(api.fetchDocuments).mockResolvedValue([{ ...baseDoc, language: 'fr' }])
       renderWithProviders(<LibraryPage />)
-      expect(await screen.findByText('fr')).toBeInTheDocument()
+      const langs = await screen.findAllByText('fr')
+      expect(langs.length).toBe(2)
     })
   })
 
@@ -236,7 +237,7 @@ describe('LibraryPage', () => {
     it('renders grid and list toggle buttons', async () => {
       vi.mocked(api.fetchDocuments).mockResolvedValue([baseDoc])
       renderWithProviders(<LibraryPage />)
-      await screen.findByText('Test Book')
+      await screen.findByRole('heading', { name: /Test Book/ })
 
       const gridBtn = screen.getByTitle('Grid view')
       const listBtn = screen.getByTitle('List view')
@@ -250,7 +251,7 @@ describe('LibraryPage', () => {
         { ...baseDoc, id: '1', title: 'List Book', file_type: 'pdf', chapter_count: 3, language: 'en', status: 'ready' },
       ])
       renderWithProviders(<LibraryPage />)
-      await screen.findByText('List Book')
+      await screen.findByRole('heading', { name: /List Book/ })
 
       await user.click(screen.getByTitle('List view'))
 
@@ -265,7 +266,7 @@ describe('LibraryPage', () => {
       const user = userEvent.setup()
       vi.mocked(api.fetchDocuments).mockResolvedValue([baseDoc])
       renderWithProviders(<LibraryPage />)
-      await screen.findByText('Test Book')
+      await screen.findByRole('heading', { name: /Test Book/ })
 
       await user.click(screen.getByTitle('List view'))
       expect(screen.getByText('Book')).toBeInTheDocument()
@@ -280,7 +281,7 @@ describe('LibraryPage', () => {
         { ...baseDoc, id: '1', title: 'Meta Book', file_type: 'mobi', chapter_count: 7, language: 'de', status: 'processing' },
       ])
       renderWithProviders(<LibraryPage />)
-      await screen.findByText('Meta Book')
+      await screen.findByRole('heading', { name: /Meta Book/ })
 
       await user.click(screen.getByTitle('List view'))
 

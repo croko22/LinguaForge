@@ -198,7 +198,7 @@ function DocumentList({ documents, onDocumentClick }: { documents: DocumentSumma
             <tr
               key={doc.id}
               onClick={() => onDocumentClick(doc.id, doc.status)}
-              className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors"
+              className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${doc.status === 'error' ? 'opacity-60' : ''}`}
             >
               <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
@@ -209,8 +209,9 @@ function DocumentList({ documents, onDocumentClick }: { documents: DocumentSumma
                       className="w-10 h-14 object-cover rounded"
                     />
                   ) : (
-                    <div className="w-10 h-14 bg-gradient-to-br from-blue-400 to-purple-500 rounded flex items-center justify-center text-lg">
-                      📖
+                    <div className="w-10 h-14 rounded flex items-center justify-center text-[10px] text-white font-bold leading-tight text-center p-1"
+                         style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2d5986 50%, #1a365d 100%)' }}>
+                      {doc.title}
                     </div>
                   )}
                   <span className="font-medium text-gray-900">{doc.title}</span>
@@ -220,13 +221,23 @@ function DocumentList({ documents, onDocumentClick }: { documents: DocumentSumma
               <td className="px-6 py-4 text-sm text-gray-500">{doc.chapter_count}</td>
               <td className="px-6 py-4 text-sm text-gray-500">{doc.language || '-'}</td>
               <td className="px-6 py-4">
-                <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-                  doc.status === 'ready' ? 'text-green-700 bg-green-50' :
-                  doc.status === 'error' ? 'text-red-700 bg-red-50' :
-                  'text-amber-700 bg-amber-50'
-                }`}>
-                  {doc.status}
-                </span>
+                {doc.status === 'error' ? (
+                  <span className="group/error relative inline-block">
+                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-red-700 bg-red-50 cursor-help">
+                      error
+                    </span>
+                    <span className="absolute bottom-full left-0 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/error:opacity-100 transition-opacity pointer-events-none z-10">
+                      {doc.error_message || 'Unknown error'}
+                    </span>
+                  </span>
+                ) : (
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+                    doc.status === 'ready' ? 'text-green-700 bg-green-50' :
+                    'text-amber-700 bg-amber-50'
+                  }`}>
+                    {doc.status}
+                  </span>
+                )}
               </td>
               <td className="px-6 py-4">
                 <button
@@ -296,8 +307,14 @@ function DocumentCard({
           className="aspect-[3/4] w-full object-cover rounded-t-xl"
         />
       ) : (
-        <div className="aspect-[3/4] w-full bg-gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center rounded-t-xl">
-          <span className="text-5xl">📖</span>
+        <div className="aspect-[3/4] w-full flex flex-col items-center justify-center p-4 text-center"
+             style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #2d5986 50%, #1a365d 100%)' }}>
+          <span className="text-white font-bold text-lg leading-tight line-clamp-3">
+            {doc.title}
+          </span>
+          {doc.language && (
+            <span className="text-white/60 text-xs mt-2 uppercase tracking-wider">{doc.language}</span>
+          )}
         </div>
       )}
       <button
@@ -314,11 +331,11 @@ function DocumentCard({
         </svg>
       </button>
       <div className="p-4">
-        <h3 className="font-semibold text-base line-clamp-2 text-gray-900 mb-2">
+        <h3 className="font-semibold text-base line-clamp-2 text-gray-900 mb-2" title={doc.title}>
           {doc.title}
         </h3>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 mb-2">
-          <span className="uppercase font-medium text-gray-400">{doc.file_type}</span>
+          <span className="text-[11px] uppercase tracking-wider font-medium text-gray-400">{doc.file_type}</span>
           <span className="text-gray-300">·</span>
           <span>{doc.chapter_count} {doc.chapter_count === 1 ? "chapter" : "chapters"}</span>
           {doc.language && (
@@ -328,17 +345,26 @@ function DocumentCard({
             </>
           )}
         </div>
-        <span
-          className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
-            doc.status === "ready"
-              ? "text-green-700 bg-green-50"
-              : doc.status === "error"
-              ? "text-red-700 bg-red-50"
-              : "text-amber-700 bg-amber-50"
-          } ${isProcessing ? "animate-pulse" : ""}`}
-        >
-          {doc.status}
-        </span>
+        {doc.status === 'error' ? (
+          <span className="group/error relative inline-block">
+            <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-red-700 bg-red-50 cursor-help">
+              error
+            </span>
+            <span className="absolute bottom-full left-0 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/error:opacity-100 transition-opacity pointer-events-none z-10">
+              {doc.error_message || 'Unknown error'}
+            </span>
+          </span>
+        ) : (
+          <span
+            className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${
+              doc.status === "ready"
+                ? "text-green-700 bg-green-50"
+                : "text-amber-700 bg-amber-50"
+            } ${isProcessing ? "animate-pulse" : ""}`}
+          >
+            {doc.status}
+          </span>
+        )}
       </div>
     </div>
   );

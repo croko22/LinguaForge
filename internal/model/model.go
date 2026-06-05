@@ -37,6 +37,7 @@ type DocumentSummary struct {
 	FileType     string    `json:"file_type"`
 	FileSize     int64     `json:"file_size"`
 	Status       string    `json:"status"`
+	ErrorMessage string    `json:"error_message,omitempty"`
 	Language     string    `json:"language,omitempty"`
 	ChapterCount int       `json:"chapter_count"`
 	CoverURL     string    `json:"cover_url,omitempty"`

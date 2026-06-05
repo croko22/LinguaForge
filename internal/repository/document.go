@@ -103,7 +103,8 @@ func (r *documentRepo) GetByID(ctx context.Context, id string) (*model.Document,
 func (r *documentRepo) List(ctx context.Context) ([]*model.DocumentSummary, error) {
 	query := `
 		SELECT id, title, file_type, file_size, status,
-		       COALESCE(language, ''), chapter_count, COALESCE(cover_path, ''), created_at
+		       COALESCE(error_message, ''), COALESCE(language, ''),
+		       chapter_count, COALESCE(cover_path, ''), created_at
 		FROM documents
 		ORDER BY created_at DESC
 	`
@@ -123,6 +124,7 @@ func (r *documentRepo) List(ctx context.Context) ([]*model.DocumentSummary, erro
 			&s.FileType,
 			&s.FileSize,
 			&s.Status,
+			&s.ErrorMessage,
 			&s.Language,
 			&s.ChapterCount,
 			&s.CoverURL,

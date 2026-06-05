@@ -11,6 +11,7 @@ export interface DocumentSummary {
   chapter_count: number
   created_at: string
   cover_url?: string
+  error_message?: string
 }
 
 export type { Chapter, ChapterContent }

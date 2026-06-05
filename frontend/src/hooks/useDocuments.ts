@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { fetchDocuments, uploadDocument, deleteDocument } from '../api/documents'
 
 export function useDocuments() {
@@ -19,7 +20,11 @@ export function useDeleteDocument() {
   return useMutation({
     mutationFn: deleteDocument,
     onSuccess: () => {
+      toast.success('Book deleted')
       queryClient.invalidateQueries({ queryKey: ['documents'] })
+    },
+    onError: () => {
+      toast.error('Failed to delete book')
     },
   })
 }
@@ -29,7 +34,11 @@ export function useUploadDocument() {
   return useMutation({
     mutationFn: uploadDocument,
     onSuccess: () => {
+      toast.success('Book uploaded successfully')
       queryClient.invalidateQueries({ queryKey: ['documents'] })
+    },
+    onError: () => {
+      toast.error('Failed to upload book')
     },
   })
 }

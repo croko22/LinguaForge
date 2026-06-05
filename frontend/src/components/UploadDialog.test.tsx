@@ -27,8 +27,8 @@ describe('UploadDialog', () => {
     renderWithProviders(
       <UploadDialog open={true} onClose={mockOnClose} onUpload={mockOnUpload} />
     )
-    expect(screen.getByText(/upload epub/i)).toBeInTheDocument()
-    expect(screen.getByLabelText(/file/i)).toBeInTheDocument()
+    expect(screen.getByText(/upload book/i)).toBeInTheDocument()
+    expect(screen.getByTestId('file-input')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /upload/i })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: /cancel/i })).toBeInTheDocument()
   })
@@ -37,7 +37,7 @@ describe('UploadDialog', () => {
     renderWithProviders(
       <UploadDialog open={false} onClose={mockOnClose} onUpload={mockOnUpload} />
     )
-    expect(screen.queryByText(/upload epub/i)).not.toBeInTheDocument()
+    expect(screen.queryByText(/upload book/i)).not.toBeInTheDocument()
   })
 
   it('calls onClose when cancel button is clicked', async () => {
