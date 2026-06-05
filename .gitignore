@@ -46,3 +46,4 @@ build/
 .pi/
 *.pi-lens/
 frontend/package.json.md5
+linguaforge-server

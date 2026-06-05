@@ -23,8 +23,10 @@ export default function LibraryPage() {
     setIsUploadOpen(false);
   };
 
-  const handleDocumentClick = (id: string) => {
-    navigate(`/read/${id}/0`)
+  const handleDocumentClick = (id: string, status: string) => {
+    if (status === 'ready') {
+      navigate(`/read/${id}/0`)
+    }
   }
 
   return (
@@ -79,12 +81,12 @@ export default function LibraryPage() {
               <DocumentCard
                 key={doc.id}
                 document={doc}
-                onClick={() => handleDocumentClick(doc.id)}
+                onClick={() => handleDocumentClick(doc.id, doc.status)}
               />
             ))}
           </div>
         ) : (
-          <DocumentList documents={documents} onDocumentClick={handleDocumentClick} />
+          <DocumentList documents={documents} onDocumentClick={(id, status) => handleDocumentClick(id, status)} />
         )}
       </div>
 
@@ -164,7 +166,7 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
   );
 }
 
-function DocumentList({ documents, onDocumentClick }: { documents: DocumentSummary[]; onDocumentClick: (id: string) => void }) {
+function DocumentList({ documents, onDocumentClick }: { documents: DocumentSummary[]; onDocumentClick: (id: string, status: string) => void }) {
   const deleteMutation = useDeleteDocument()
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null)
 
@@ -195,7 +197,7 @@ function DocumentList({ documents, onDocumentClick }: { documents: DocumentSumma
           {documents.map((doc) => (
             <tr
               key={doc.id}
-              onClick={() => onDocumentClick(doc.id)}
+              onClick={() => onDocumentClick(doc.id, doc.status)}
               className="border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors"
             >
               <td className="px-6 py-4">
@@ -273,10 +275,19 @@ function DocumentCard({
     }
   }
 
+  const isError = doc.status === "error"
+  const isClickable = doc.status === "ready"
+
   return (
     <div
-      className="group bg-white rounded-xl shadow-sm hover:shadow-lg transition-all duration-200 cursor-pointer overflow-hidden border border-gray-100 hover:border-gray-200 hover:-translate-y-0.5 relative"
-      onClick={onClick}
+      className={`group bg-white rounded-xl shadow-sm transition-all duration-200 overflow-hidden border border-gray-100 relative ${
+        isClickable
+          ? 'cursor-pointer hover:shadow-lg hover:border-gray-200 hover:-translate-y-0.5'
+          : isError
+          ? 'opacity-60'
+          : 'cursor-default'
+      }`}
+      onClick={isClickable ? onClick : undefined}
     >
       {coverUrl ? (
         <img
