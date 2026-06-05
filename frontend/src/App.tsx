@@ -9,7 +9,7 @@ function NavBadge() {
   const { data: count } = useDueCount()
   if (!count || count === 0) return null
   return (
-    <span className="inline-flex items-center justify-center w-5 h-5 text-[11px] font-bold bg-white text-emerald-600 rounded-full">
+    <span className="inline-flex items-center justify-center w-5 h-5 text-[11px] font-bold bg-surface text-primary rounded-full">
       {count > 99 ? '99+' : count}
     </span>
   )
@@ -19,11 +19,11 @@ function App() {
   const { pathname } = useLocation()
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <nav className="sticky top-0 z-30 backdrop-blur-md bg-white/80 border-b border-gray-200 px-6 py-3 flex items-center justify-between">
+    <div className="min-h-screen bg-surface-muted">
+      <nav className="sticky top-0 z-30 backdrop-blur-md bg-surface-glass border-b border-border px-6 py-3 flex items-center justify-between">
         <Link
           to="/"
-          className={`font-bold text-lg transition-colors ${pathname === '/' ? 'text-emerald-600' : 'text-gray-900 hover:text-emerald-600'}`}
+          className={`font-bold text-lg transition-colors ${pathname === '/' ? 'text-primary' : 'text-text hover:text-primary'}`}
         >
           LinguaForge
         </Link>
@@ -31,9 +31,9 @@ function App() {
           <Link
             to="/review"
             className={`flex items-center gap-1.5 px-4 py-1.5 text-sm font-medium rounded-full transition-colors ${
-              pathname === '/review'
-                ? 'bg-emerald-700 text-white'
-                : 'bg-emerald-600 text-white hover:bg-emerald-700'
+               pathname === '/review'
+                 ? 'bg-primary-hover text-text-inverse'
+                 : 'bg-primary text-text-inverse hover:bg-primary-hover'
             }`}
           >
             Review
@@ -42,9 +42,9 @@ function App() {
           <Link
             to="/settings"
             className={`p-2 rounded-full transition-colors ${
-              pathname === '/settings'
-                ? 'text-emerald-600 bg-emerald-50'
-                : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+               pathname === '/settings'
+                 ? 'text-primary bg-primary-light'
+                 : 'text-text-muted hover:text-text-secondary hover:bg-surface-hover'
             }`}
             title="Settings"
           >

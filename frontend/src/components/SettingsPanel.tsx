@@ -38,12 +38,12 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
   return (
     <div
       ref={panelRef}
-      className="absolute right-0 top-full mt-2 w-72 bg-white border rounded-xl shadow-xl p-4 z-50"
+      className="absolute right-0 top-full mt-2 w-72 bg-surface border rounded-xl shadow-xl p-4 z-50"
       onClick={(e) => e.stopPropagation()}
     >
       <div className="space-y-4">
         <div>
-          <label className="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Theme</label>
+          <label className="block text-xs text-text-secondary uppercase tracking-wide font-semibold mb-2">Theme</label>
           <div className="flex gap-2">
             {(['light', 'sepia', 'dark'] as const).map((t) => (
               <button
@@ -51,8 +51,8 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
                 onClick={() => setTheme(t)}
                 className={`flex items-center gap-1.5 flex-1 py-2 text-xs font-medium rounded-lg border transition-all
                   ${theme === t
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-500'
+                    ? 'border-primary bg-primary-light text-primary-text shadow-sm'
+                    : 'border-border hover:border-gray-300 hover:bg-surface-hover text-text-muted'
                   }`}
               >
                 <span
@@ -69,24 +69,24 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
         </div>
 
         <div>
-          <label className="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Font Size</label>
+          <label className="block text-xs text-text-secondary uppercase tracking-wide font-semibold mb-2">Font Size</label>
           <div className="flex items-center gap-2">
             <button
               onClick={() => currentFontIndex > 0 && setFontSize(fontSteps[currentFontIndex - 1])}
               disabled={currentFontIndex <= 0}
-              className="w-8 h-8 flex items-center justify-center border rounded-lg disabled:opacity-30 hover:bg-gray-100 transition-colors text-gray-600"
+              className="w-8 h-8 flex items-center justify-center border rounded-lg disabled:opacity-30 hover:bg-surface-hover transition-colors text-text-secondary"
             >−</button>
-            <span className="text-sm font-semibold min-w-[2rem] text-center text-gray-700">{fontLabels[currentFontIndex]}</span>
+            <span className="text-sm font-semibold min-w-[2rem] text-center text-text">{fontLabels[currentFontIndex]}</span>
             <button
               onClick={() => currentFontIndex < fontSteps.length - 1 && setFontSize(fontSteps[currentFontIndex + 1])}
               disabled={currentFontIndex >= fontSteps.length - 1}
-              className="w-8 h-8 flex items-center justify-center border rounded-lg disabled:opacity-30 hover:bg-gray-100 transition-colors text-gray-600"
+              className="w-8 h-8 flex items-center justify-center border rounded-lg disabled:opacity-30 hover:bg-surface-hover transition-colors text-text-secondary"
             >+</button>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs text-gray-500 uppercase tracking-wide font-semibold mb-2">Spacing</label>
+          <label className="block text-xs text-text-secondary uppercase tracking-wide font-semibold mb-2">Spacing</label>
           <div className="flex gap-2">
             {([1.6, 1.8, 2.0] as const).map((h) => (
               <button
@@ -94,8 +94,8 @@ export default function SettingsPanel({ onClose }: SettingsPanelProps) {
                 onClick={() => setLineHeight(h)}
                 className={`flex-1 py-1.5 text-xs font-medium rounded-lg border transition-all
                   ${lineHeight === h
-                    ? 'border-blue-500 bg-blue-50 text-blue-700 shadow-sm'
-                    : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-500'
+                    ? 'border-primary bg-primary-light text-primary-text shadow-sm'
+                    : 'border-border hover:border-gray-300 hover:bg-surface-hover text-text-muted'
                   }`}
               >
                 {h === 1.6 ? 'Compact' : h === 1.8 ? 'Normal' : 'Relaxed'}

@@ -89,16 +89,16 @@ export default function UploadDialog({ open, onClose, onUpload }: UploadDialogPr
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" role="dialog">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-2xl">
+      <div className="bg-surface rounded-2xl p-6 w-full max-w-md shadow-2xl">
         <h2 className="text-xl font-semibold mb-1">Upload Book</h2>
-        <p className="text-sm text-gray-500 mb-4">Add an EPUB to your library</p>
+        <p className="text-sm text-text-secondary mb-4">Add an EPUB to your library</p>
 
         <div
           className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-colors ${
             isDragging
-              ? 'border-blue-500 bg-blue-50'
-              : fileError
-                ? 'border-red-300 bg-red-50'
+               ? 'border-primary bg-primary-light'
+               : fileError
+                 ? 'border-red-300 bg-danger-light'
                 : 'border-gray-300 hover:border-gray-400'
           }`}
           onDragOver={handleDragOver}
@@ -106,14 +106,14 @@ export default function UploadDialog({ open, onClose, onUpload }: UploadDialogPr
           onDrop={handleDrop}
           onClick={() => fileRef.current?.click()}
         >
-          <UploadIcon className="w-10 h-10 mx-auto mb-3 text-gray-400" />
-          <p className="text-sm text-gray-600 font-medium">
+          <UploadIcon className="w-10 h-10 mx-auto mb-3 text-text-muted" />
+          <p className="text-sm text-text-secondary font-medium">
             {selectedFile ? selectedFile.name : 'Drag & drop your EPUB here'}
           </p>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs text-text-muted mt-1">
             {selectedFile ? `${(selectedFile.size / 1024 / 1024).toFixed(1)} MB` : 'or click to browse'}
           </p>
-          {fileError && <p className="text-xs text-red-500 mt-2">{fileError}</p>}
+          {fileError && <p className="text-xs text-danger mt-2">{fileError}</p>}
           <input
             ref={fileRef}
             type="file"
@@ -128,14 +128,14 @@ export default function UploadDialog({ open, onClose, onUpload }: UploadDialogPr
           <button
             onClick={onClose}
             disabled={uploading}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-surface-hover disabled:opacity-50 transition-colors"
           >
             Cancel
           </button>
           <button
             onClick={handleUpload}
             disabled={!selectedFile || uploading}
-            className="px-4 py-2 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 disabled:opacity-50 transition-colors"
+            className="px-4 py-2 bg-primary text-text-inverse text-sm font-medium rounded-lg hover:bg-primary-hover disabled:opacity-50 transition-colors"
           >
             {uploading ? 'Uploading...' : 'Upload'}
           </button>

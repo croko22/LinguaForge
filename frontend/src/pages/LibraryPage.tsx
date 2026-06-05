@@ -30,15 +30,15 @@ export default function LibraryPage() {
   }
 
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-surface-muted min-h-screen">
       <div className="max-w-7xl mx-auto px-6 py-8">
         <header className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">My Library</h1>
+          <h1 className="text-2xl font-bold text-text">My Library</h1>
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-gray-200 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-surface-hover text-text' : 'text-text-muted hover:text-text-secondary'}`}
                 title="Grid view"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -47,7 +47,7 @@ export default function LibraryPage() {
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-gray-200 text-gray-900' : 'text-gray-400 hover:text-gray-600'}`}
+                className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-surface-hover text-text' : 'text-text-muted hover:text-text-secondary'}`}
                 title="List view"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
@@ -58,7 +58,7 @@ export default function LibraryPage() {
             {!isUploadOpen && (
               <button
                 onClick={() => setIsUploadOpen(true)}
-                className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition-colors font-medium flex items-center gap-2"
+                className="bg-primary text-text-inverse px-5 py-2.5 rounded-xl hover:bg-primary-hover transition-colors font-medium flex items-center gap-2"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -102,7 +102,7 @@ export default function LibraryPage() {
 function LoadingSkeleton({ viewMode = 'grid' }: { viewMode?: 'grid' | 'list' }) {
   if (viewMode === 'list') {
     return (
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden animate-pulse">
+      <div className="bg-surface rounded-xl shadow-sm border border-border-light overflow-hidden animate-pulse">
         <div className="p-4 space-y-4">
           {[1, 2, 3].map((i) => (
             <div key={i} className="flex items-center gap-4">
@@ -121,7 +121,7 @@ function LoadingSkeleton({ viewMode = 'grid' }: { viewMode?: 'grid' | 'list' }) 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
       {[1, 2, 3, 4].map((i) => (
-        <div key={i} className="bg-white rounded-xl overflow-hidden border border-gray-100 animate-pulse">
+        <div key={i} className="bg-surface rounded-xl overflow-hidden border border-border-light animate-pulse">
           <div className="aspect-[3/4] bg-gray-200" />
           <div className="p-4 space-y-3">
             <div className="h-4 bg-gray-200 rounded w-3/4" />
@@ -138,11 +138,11 @@ function ErrorState({ onRetry }: { onRetry: () => void }) {
   return (
     <div className="text-center py-16">
       <div className="text-5xl mb-4">⚠️</div>
-      <h2 className="text-lg font-medium text-gray-900 mb-2">Failed to load your library</h2>
-      <p className="text-gray-500 mb-6">Could not fetch your documents. Please try again.</p>
-      <button
-        onClick={onRetry}
-        className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition-colors font-medium"
+        <h2 className="text-lg font-medium text-text mb-2">Failed to load your library</h2>
+       <p className="text-text-secondary mb-6">Could not fetch your documents. Please try again.</p>
+       <button
+         onClick={onRetry}
+         className="bg-primary text-text-inverse px-5 py-2.5 rounded-xl hover:bg-primary-hover transition-colors font-medium"
       >
         Try Again
       </button>
@@ -154,11 +154,11 @@ function EmptyState({ onUpload }: { onUpload: () => void }) {
   return (
     <div className="text-center py-16">
       <div className="text-6xl mb-4">📚</div>
-      <h2 className="text-lg font-medium text-gray-900 mb-2">No books yet</h2>
-      <p className="text-gray-500 mb-6">Upload your first EPUB to start reading</p>
+      <h2 className="text-lg font-medium text-text mb-2">No books yet</h2>
+      <p className="text-text-secondary mb-6">Upload your first EPUB to start reading</p>
       <button
         onClick={onUpload}
-        className="bg-emerald-600 text-white px-5 py-2.5 rounded-xl hover:bg-emerald-700 transition-colors font-medium"
+        className="bg-primary text-text-inverse px-5 py-2.5 rounded-xl hover:bg-primary-hover transition-colors font-medium"
       >
         Upload your first book
       </button>
@@ -181,10 +181,10 @@ function DocumentList({ documents, onDocumentClick }: { documents: DocumentSumma
     }
   }
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+    <div className="bg-surface rounded-xl shadow-sm border border-border-light overflow-hidden">
       <table className="w-full">
         <thead>
-          <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+          <tr className="border-b border-border-light text-left text-xs font-medium text-text-muted uppercase tracking-wider">
             <th className="px-6 py-3">Book</th>
             <th className="px-6 py-3">Type</th>
             <th className="px-6 py-3">Chapters</th>
@@ -198,7 +198,7 @@ function DocumentList({ documents, onDocumentClick }: { documents: DocumentSumma
             <tr
               key={doc.id}
               onClick={() => onDocumentClick(doc.id, doc.status)}
-              className={`border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors ${doc.status === 'error' ? 'opacity-60' : ''}`}
+              className={`border-b border-border-light hover:bg-surface-hover cursor-pointer transition-colors ${doc.status === 'error' ? 'opacity-60' : ''}`}
             >
               <td className="px-6 py-4">
                 <div className="flex items-center gap-3">
@@ -214,16 +214,16 @@ function DocumentList({ documents, onDocumentClick }: { documents: DocumentSumma
                       {doc.title}
                     </div>
                   )}
-                  <span className="font-medium text-gray-900">{doc.title}</span>
+                  <span className="font-medium text-text">{doc.title}</span>
                 </div>
               </td>
-              <td className="px-6 py-4 text-sm text-gray-500 uppercase">{doc.file_type}</td>
-              <td className="px-6 py-4 text-sm text-gray-500">{doc.chapter_count}</td>
-              <td className="px-6 py-4 text-sm text-gray-500">{doc.language || '-'}</td>
+              <td className="px-6 py-4 text-sm text-text-secondary uppercase">{doc.file_type}</td>
+              <td className="px-6 py-4 text-sm text-text-secondary">{doc.chapter_count}</td>
+              <td className="px-6 py-4 text-sm text-text-secondary">{doc.language || '-'}</td>
               <td className="px-6 py-4">
                 {doc.status === 'error' ? (
                   <span className="group/error relative inline-block">
-                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-red-700 bg-red-50 cursor-help">
+                    <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-danger-text bg-danger-light cursor-help">
                       error
                     </span>
                     <span className="absolute bottom-full left-0 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/error:opacity-100 transition-opacity pointer-events-none z-10">
@@ -243,7 +243,7 @@ function DocumentList({ documents, onDocumentClick }: { documents: DocumentSumma
                 <button
                   onClick={(e) => handleDelete(e, doc.id)}
                   className={`transition-colors ${
-                    confirmDeleteId === doc.id ? 'text-red-500' : 'text-gray-400 hover:text-red-500'
+                    confirmDeleteId === doc.id ? 'text-danger' : 'text-text-muted hover:text-danger'
                   }`}
                   title={confirmDeleteId === doc.id ? 'Click again to confirm' : 'Delete'}
                 >
@@ -291,9 +291,9 @@ function DocumentCard({
 
   return (
     <div
-      className={`group bg-white rounded-xl shadow-sm transition-all duration-200 overflow-hidden border border-gray-100 relative ${
+      className={`group bg-surface rounded-xl shadow-sm transition-all duration-200 overflow-hidden border border-border-light relative ${
         isClickable
-          ? 'cursor-pointer hover:shadow-lg hover:border-gray-200 hover:-translate-y-0.5'
+          ? 'cursor-pointer hover:shadow-lg hover:border-border hover:-translate-y-0.5'
           : isError
           ? 'opacity-60'
           : 'cursor-default'
@@ -321,8 +321,8 @@ function DocumentCard({
         onClick={handleDelete}
         className={`absolute top-2 right-2 p-1.5 rounded-full transition-all ${
           confirmDelete
-            ? 'bg-red-500 text-white opacity-100'
-            : 'bg-white/80 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100'
+            ? 'bg-danger text-text-inverse opacity-100'
+            : 'bg-surface-glass text-text-muted hover:text-danger opacity-0 group-hover:opacity-100'
         }`}
         title={confirmDelete ? 'Click again to confirm' : 'Delete'}
       >
@@ -331,11 +331,11 @@ function DocumentCard({
         </svg>
       </button>
       <div className="p-4">
-        <h3 className="font-semibold text-base line-clamp-2 text-gray-900 mb-2" title={doc.title}>
+        <h3 className="font-semibold text-base line-clamp-2 text-text mb-2" title={doc.title}>
           {doc.title}
         </h3>
-        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-gray-500 mb-2">
-          <span className="text-[11px] uppercase tracking-wider font-medium text-gray-400">{doc.file_type}</span>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-text-secondary mb-2">
+          <span className="text-[11px] uppercase tracking-wider font-medium text-text-muted">{doc.file_type}</span>
           <span className="text-gray-300">·</span>
           <span>{doc.chapter_count} {doc.chapter_count === 1 ? "chapter" : "chapters"}</span>
           {doc.language && (
@@ -347,7 +347,7 @@ function DocumentCard({
         </div>
         {doc.status === 'error' ? (
           <span className="group/error relative inline-block">
-            <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-red-700 bg-red-50 cursor-help">
+            <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium text-danger-text bg-danger-light cursor-help">
               error
             </span>
             <span className="absolute bottom-full left-0 mb-2 px-3 py-1.5 bg-gray-900 text-white text-xs rounded-lg whitespace-nowrap opacity-0 group-hover/error:opacity-100 transition-opacity pointer-events-none z-10">

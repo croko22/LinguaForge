@@ -21,7 +21,7 @@ function WordItem({ word, count }: { word: string; count: number }) {
   }, [word])
 
   return (
-    <li className="group flex items-center justify-between px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors cursor-default">
+    <li className="group flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors cursor-default">
       <div className="flex items-center gap-2 min-w-0">
         <span className="font-semibold text-sm truncate">{word}</span>
         {count > 1 && (
@@ -30,7 +30,7 @@ function WordItem({ word, count }: { word: string; count: number }) {
           </span>
         )}
       </div>
-      <span className="text-xs text-gray-400 italic truncate ml-2 shrink-0">
+      <span className="text-xs text-text-muted italic truncate ml-2 shrink-0">
         {translation ?? '...'}
       </span>
     </li>
@@ -48,18 +48,18 @@ export default function WordPanel({ words, onClear }: WordPanelProps) {
   return (
     <div>
       <div className="flex items-center justify-between mb-2 px-1">
-        <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+        <h2 className="text-xs font-semibold uppercase tracking-wider text-text-muted">
           Vocabulary
-          <span className="ml-1.5 text-[10px] bg-gray-200 text-gray-500 rounded-full px-1.5 py-0.5 leading-none">{words.length}</span>
+          <span className="ml-1.5 text-[10px] bg-gray-200 text-text-secondary rounded-full px-1.5 py-0.5 leading-none">{words.length}</span>
         </h2>
         {words.length > 0 && (
-          <button onClick={onClear} className="text-[11px] text-gray-400 hover:text-red-500 transition-colors">
+          <button onClick={onClear} className="text-[11px] text-text-muted hover:text-danger transition-colors">
             Clear all
           </button>
         )}
       </div>
       {words.length === 0 ? (
-        <p className="text-sm text-gray-400 px-1">Click any word to look it up</p>
+        <p className="text-sm text-text-muted px-1">Click any word to look it up</p>
       ) : (
         <ul className="space-y-0.5">
           {unique.map(({ word, count }) => (

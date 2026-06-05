@@ -48,7 +48,7 @@ export default function SettingsPage() {
   if (!settings) {
     return (
       <div className="max-w-2xl mx-auto p-6">
-        <p className="text-gray-500">Loading settings...</p>
+        <p className="text-text-secondary">Loading settings...</p>
       </div>
     )
   }
@@ -67,8 +67,8 @@ export default function SettingsPage() {
               onClick={() => handleProviderChange(p.name)}
               className={`px-4 py-2 rounded border text-sm capitalize ${
                 settings.active_provider === p.name
-                  ? 'bg-blue-600 text-white border-blue-600'
-                  : 'hover:bg-gray-50'
+                   ? 'bg-primary text-text-inverse border-primary'
+                   : 'hover:bg-surface-hover'
               }`}
             >
               {p.name}
@@ -83,8 +83,8 @@ export default function SettingsPage() {
           key={p.name}
           className={`mb-4 p-4 border rounded ${
             settings.active_provider === p.name
-              ? 'border-blue-300 bg-blue-50'
-              : 'opacity-60'
+               ? 'border-primary bg-primary-light'
+               : 'opacity-60'
           }`}
         >
           <h3 className="font-semibold capitalize mb-3">{p.name}</h3>
@@ -92,7 +92,7 @@ export default function SettingsPage() {
           {p.name === 'libre' && (
             <>
               <div className="mb-3">
-                <label className="block text-xs text-gray-500 mb-1">API Endpoint</label>
+                <label className="block text-xs text-text-secondary mb-1">API Endpoint</label>
                 <input
                   type="text"
                   value={p.endpoint}
@@ -102,7 +102,7 @@ export default function SettingsPage() {
                 />
               </div>
               <div className="mb-3">
-                <label className="block text-xs text-gray-500 mb-1">API Key (optional)</label>
+                <label className="block text-xs text-text-secondary mb-1">API Key (optional)</label>
                 <input
                   type="password"
                   value={p.api_key ?? ''}
@@ -115,7 +115,7 @@ export default function SettingsPage() {
           )}
 
           {p.name === 'mock' && (
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-text-secondary">
               Embedded dictionary (works offline, 24 words en→es). No configuration needed.
             </p>
           )}
@@ -126,14 +126,14 @@ export default function SettingsPage() {
       <button
         onClick={handleSave}
         disabled={saving}
-        className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
+        className="px-6 py-2 bg-primary text-text-inverse rounded hover:bg-primary-hover disabled:opacity-50"
       >
         {saving ? 'Saving...' : 'Save'}
       </button>
 
       {message && (
         <p
-          className={`mt-3 text-sm ${message.includes('Failed') ? 'text-red-600' : 'text-green-600'}`}
+          className={`mt-3 text-sm ${message.includes('Failed') ? 'text-danger' : 'text-green-600'}`}
         >
           {message}
         </p>

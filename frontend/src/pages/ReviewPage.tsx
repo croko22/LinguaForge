@@ -14,7 +14,7 @@ export default function ReviewPage() {
   if (isLoading) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
-        <p className="text-gray-500 text-lg">Loading review session...</p>
+        <p className="text-text-secondary text-lg">Loading review session...</p>
       </div>
     )
   }
@@ -22,7 +22,7 @@ export default function ReviewPage() {
   if (isError) {
     return (
       <div className="flex h-[80vh] items-center justify-center">
-        <p className="text-red-500 text-lg">Failed to load due words</p>
+        <p className="text-danger text-lg">Failed to load due words</p>
       </div>
     )
   }
@@ -32,7 +32,7 @@ export default function ReviewPage() {
       <div className="flex h-[80vh] items-center justify-center">
         <div className="text-center">
           <p className="text-4xl mb-4">🎉</p>
-          <p className="text-xl text-gray-600">No cards due for review!</p>
+          <p className="text-xl text-text-secondary">No cards due for review!</p>
         </div>
       </div>
     )
@@ -54,7 +54,7 @@ export default function ReviewPage() {
       <div className="flex h-[80vh] items-center justify-center">
         <div className="text-center">
           <p className="text-4xl mb-4">🎉</p>
-          <p className="text-xl text-gray-600">Session complete! All {total} cards reviewed.</p>
+          <p className="text-xl text-text-secondary">Session complete! All {total} cards reviewed.</p>
         </div>
       </div>
     )
@@ -63,7 +63,7 @@ export default function ReviewPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
       <div className="text-center mb-6">
-        <p className="text-sm text-gray-500">
+        <p className="text-sm text-text-secondary">
           {currentIndex + 1} of {total}
         </p>
       </div>

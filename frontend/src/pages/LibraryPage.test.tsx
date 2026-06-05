@@ -185,8 +185,8 @@ describe('LibraryPage', () => {
       vi.mocked(api.fetchDocuments).mockResolvedValue([{ ...baseDoc, status: 'error' }])
       renderWithProviders(<LibraryPage />)
       const badge = await screen.findByText('error')
-      expect(badge.className).toContain('text-red-700')
-      expect(badge.className).toContain('bg-red-50')
+      expect(badge.className).toContain('text-danger-text')
+      expect(badge.className).toContain('bg-danger-light')
     })
 
     it('shows amber badge for processing status', async () => {

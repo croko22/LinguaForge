@@ -45,9 +45,9 @@ export default function ReaderPage() {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-red-600 mb-2">Document not found</h2>
-          <p className="text-gray-500 mb-4">This document may have been deleted or is unavailable.</p>
-          <a href="/" className="text-blue-600 hover:underline">← Back to Library</a>
+          <h2 className="text-xl font-semibold text-danger mb-2">Document not found</h2>
+          <p className="text-text-secondary mb-4">This document may have been deleted or is unavailable.</p>
+          <a href="/" className="text-primary hover:underline">← Back to Library</a>
         </div>
       </div>
     );
@@ -57,9 +57,9 @@ export default function ReaderPage() {
     return (
       <div className="flex h-screen items-center justify-center">
         <div className="text-center">
-          <h2 className="text-xl font-semibold text-red-600 mb-2">Failed to load chapter</h2>
-          <p className="text-gray-500 mb-4">There was a problem loading this chapter.</p>
-          <a href="/" className="text-blue-600 hover:underline">← Back to Library</a>
+          <h2 className="text-xl font-semibold text-danger mb-2">Failed to load chapter</h2>
+          <p className="text-text-secondary mb-4">There was a problem loading this chapter.</p>
+          <a href="/" className="text-primary hover:underline">← Back to Library</a>
         </div>
       </div>
     );
@@ -79,7 +79,7 @@ export default function ReaderPage() {
   if (!chapter) {
     return (
       <div className="flex h-screen items-center justify-center">
-        <p className="text-gray-500">Loading...</p>
+        <p className="text-text-secondary">Loading...</p>
       </div>
     );
   }
@@ -87,22 +87,22 @@ export default function ReaderPage() {
   const themeClass = theme === 'light' ? 'reader-light' : theme === 'sepia' ? 'reader-sepia' : 'reader-dark';
 
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-surface">
       {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden relative">
         {/* Header - neutral bg, never changes with theme */}
-        <header className="bg-white border-b px-4 py-2 flex items-center justify-between shrink-0">
+        <header className="bg-surface border-b px-4 py-2 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3 min-w-0">
             <a
               href="/"
-              className="text-gray-400 hover:text-gray-600 transition-colors shrink-0"
+              className="text-text-muted hover:text-text-secondary transition-colors shrink-0"
               title="Back to library"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
             </a>
-            <h1 className="text-base font-semibold truncate text-gray-900">{chapter.chapter_title}</h1>
+            <h1 className="text-base font-semibold truncate text-text">{chapter.chapter_title}</h1>
           </div>
 
           <div className="flex items-center gap-2">
@@ -116,7 +116,7 @@ export default function ReaderPage() {
             <select
               value={currentChapter}
               onChange={(e) => goTo(parseInt(e.target.value, 10))}
-              className="border border-gray-200 rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-white hover:border-gray-300 transition-colors"
+              className="border border-border rounded-lg px-2 py-1.5 text-sm text-gray-700 bg-surface transition-colors"
             >
               {chapters?.map((ch) => (
                 <option key={ch.chapter_index} value={ch.chapter_index}>
@@ -136,7 +136,7 @@ export default function ReaderPage() {
           <div className="relative">
             <button
               onClick={() => setShowSettings(s => !s)}
-              className="w-8 h-8 flex items-center justify-center border border-gray-200 rounded-lg hover:bg-gray-100 hover:border-gray-300 transition-all text-gray-500"
+              className="w-8 h-8 flex items-center justify-center border border-border rounded-lg hover:bg-surface-hover transition-all text-text-muted"
               title="Reader settings"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -175,7 +175,7 @@ export default function ReaderPage() {
       </div>
 
       {/* Sidebar - neutral bg */}
-      <aside className="w-80 border-l bg-gray-50 flex flex-col overflow-y-auto">
+      <aside className="w-80 border-l bg-surface-muted flex flex-col overflow-y-auto">
         <div className="p-4">
           <WordPanel words={clickedWords} onClear={() => setClickedWords([])} />
         </div>

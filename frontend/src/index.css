@@ -1,27 +1,74 @@
 @import "tailwindcss";
 
+@theme {
+  /* Primary — emerald */
+  --color-primary: #059669;
+  --color-primary-hover: #047857;
+  --color-primary-light: #ecfdf5;
+  --color-primary-dark: #065f46;
+  --color-primary-text: #047857;
+
+  /* Danger — red */
+  --color-danger: #ef4444;
+  --color-danger-hover: #dc2626;
+  --color-danger-light: #fef2f2;
+  --color-danger-text: #991b1b;
+
+  /* Grades — review cards */
+  --color-grade-again: #dc2626;
+  --color-grade-again-hover: #b91c1c;
+  --color-grade-hard: #f59e0b;
+  --color-grade-hard-hover: #d97706;
+  --color-grade-good: #059669;
+  --color-grade-good-hover: #047857;
+  --color-grade-easy: #3b82f6;
+  --color-grade-easy-hover: #2563eb;
+
+  /* Surfaces */
+  --color-surface: #ffffff;
+  --color-surface-glass: rgba(255, 255, 255, 0.8);
+  --color-surface-muted: #f9fafb;
+  --color-surface-hover: #f3f4f6;
+
+  /* Text */
+  --color-text: #111827;
+  --color-text-secondary: #6b7280;
+  --color-text-muted: #9ca3af;
+  --color-text-inverse: #ffffff;
+
+  /* Borders */
+  --color-border: #e5e7eb;
+  --color-border-light: #f3f4f6;
+
+  /* Reader themes — keep these as they are */
+  --color-reader-light-bg: #ffffff;
+  --color-reader-light-text: #1a1a1a;
+  --color-reader-light-muted: #9ca3af;
+  --color-reader-sepia-bg: #f4ecd8;
+  --color-reader-sepia-text: #5c4b37;
+  --color-reader-sepia-muted: #a89880;
+  --color-reader-dark-bg: #1a1a2e;
+  --color-reader-dark-text: #e0e0e0;
+  --color-reader-dark-muted: #7f8c8d;
+}
+
+/* Reader themes — applied to the reading canvas only */
 .reader-light {
-  --reader-bg: #ffffff;
-  --reader-text: #1a1a1a;
-  --reader-muted: #9ca3af;
-  --reader-accent: #3b82f6;
-  --reader-hover: rgba(59, 130, 246, 0.08);
+  --reader-bg: var(--color-reader-light-bg);
+  --reader-text: var(--color-reader-light-text);
+  --reader-muted: var(--color-reader-light-muted);
 }
 
 .reader-sepia {
-  --reader-bg: #f4ecd8;
-  --reader-text: #5c4b37;
-  --reader-muted: #a89880;
-  --reader-accent: #c07c00;
-  --reader-hover: rgba(192, 124, 0, 0.1);
+  --reader-bg: var(--color-reader-sepia-bg);
+  --reader-text: var(--color-reader-sepia-text);
+  --reader-muted: var(--color-reader-sepia-muted);
 }
 
 .reader-dark {
-  --reader-bg: #1a1a2e;
-  --reader-text: #e0e0e0;
-  --reader-muted: #7f8c8d;
-  --reader-accent: #93c5fd;
-  --reader-hover: rgba(147, 197, 253, 0.1);
+  --reader-bg: var(--color-reader-dark-bg);
+  --reader-text: var(--color-reader-dark-text);
+  --reader-muted: var(--color-reader-dark-muted);
 }
 
 .theme-transition {
