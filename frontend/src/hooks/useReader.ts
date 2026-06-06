@@ -1,5 +1,13 @@
 import { useQuery } from '@tanstack/react-query'
-import { fetchChapters, fetchChapterContent } from '../api/documents'
+import { fetchChapters, fetchChapterContent, fetchDocument } from '../api/documents'
+
+export function useDocument(documentId: string) {
+  return useQuery({
+    queryKey: ['documents', documentId],
+    queryFn: () => fetchDocument(documentId),
+    enabled: !!documentId,
+  })
+}
 
 export function useChapters(documentId: string) {
   return useQuery({

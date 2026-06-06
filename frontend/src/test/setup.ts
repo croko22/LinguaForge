@@ -5,5 +5,4 @@ class ResizeObserverMock {
   unobserve() {}
   disconnect() {}
 }
-// @ts-expect-error ResizeObserver not available in jsdom
 globalThis.ResizeObserver = ResizeObserverMock

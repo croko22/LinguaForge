@@ -37,6 +37,7 @@ frontend/wailsjs/
 # Frontend
 frontend/dist/
 frontend/node_modules/
+/node_modules/
 build/
 # Local Pi runtime state
 .atl/

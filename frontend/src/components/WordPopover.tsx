@@ -9,15 +9,20 @@ interface WordPopoverProps {
 
 export default function WordPopover({ word, position, onClose }: WordPopoverProps) {
   const ref = useRef<HTMLDivElement>(null)
-  const [translation, setTranslation] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState(false)
+  const [result, setResult] = useState<{
+    word: string | null
+    translation: string | null
+    error: boolean
+  }>({ word: null, translation: null, error: false })
+
+  const isCurrentResult = result.word === word
+  const translation = isCurrentResult ? result.translation : null
+  const error = isCurrentResult ? result.error : false
+  const loading = !!word && !isCurrentResult
 
   useEffect(() => {
     if (!word) return
-    setLoading(true)
-    setError(false)
-    setTranslation(null)
+    let cancelled = false
 
     fetch(`${API_BASE}/translate`, {
       method: 'POST',
@@ -29,13 +34,19 @@ export default function WordPopover({ word, position, onClose }: WordPopoverProp
         return res.json()
       })
       .then((data) => {
-        setTranslation(data.translation)
-        setLoading(false)
+        if (!cancelled) {
+          setResult({ word, translation: data.translation, error: false })
+        }
       })
       .catch(() => {
-        setError(true)
-        setLoading(false)
+        if (!cancelled) {
+          setResult({ word, translation: null, error: true })
+        }
       })
+
+    return () => {
+      cancelled = true
+    }
   }, [word])
 
   useEffect(() => {

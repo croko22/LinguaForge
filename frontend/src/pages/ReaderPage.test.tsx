@@ -14,6 +14,7 @@ vi.stubGlobal('fetch', mockFetch)
 
 vi.mock('../api/documents', () => ({
   fetchDocuments: vi.fn(),
+  fetchDocument: vi.fn(),
   uploadDocument: vi.fn(),
   fetchChapters: vi.fn(),
   fetchChapterContent: vi.fn(),
@@ -46,19 +47,37 @@ describe('ReaderPage', () => {
     content: 'This is the first chapter content.', token_count: 6, created_at: '',
   }
 
+  const mockDocument = {
+    id: 'doc-1',
+    title: 'Test Book',
+    file_type: 'epub',
+    file_size: 1024,
+    status: 'ready',
+    language: 'en',
+    chapter_count: 3,
+    created_at: '',
+  }
+
   beforeEach(() => {
     vi.clearAllMocks()
     vi.mocked(api.fetchChapters).mockResolvedValue(mockChapters)
     vi.mocked(api.fetchChapterContent).mockResolvedValue(mockContent)
+    vi.mocked(api.fetchDocument).mockResolvedValue(mockDocument)
     mockFetch
       .mockResolvedValueOnce({ ok: true, json: () => Promise.resolve([]) })
       .mockResolvedValue({ ok: true, json: () => Promise.resolve({ translation: 'test' }) })
   })
 
-  it('renders the document title as heading', async () => {
+  it('renders the book title and chapter title', async () => {
     renderWithProviders(<ReaderPage />)
+    expect(await screen.findByText('Test Book')).toBeInTheDocument()
     const heading = await screen.findByRole('heading', { level: 1 })
     expect(heading).toHaveTextContent('Introduction')
+  })
+
+  it('shows a visible page indicator', async () => {
+    renderWithProviders(<ReaderPage />)
+    expect(await screen.findByText(/page 1 \/ 1/i)).toBeInTheDocument()
   })
 
   it('renders chapter content text', async () => {
@@ -69,21 +88,31 @@ describe('ReaderPage', () => {
   })
 
   it('renders chapter navigation with prev/next buttons', async () => {
+    const user = userEvent.setup()
     renderWithProviders(<ReaderPage />)
+    await user.click(await screen.findByRole('button', { name: /chapters/i }))
+    expect(await screen.findByRole('button', { name: /prev/i })).toBeInTheDocument()
     expect(await screen.findByRole('button', { name: /next/i })).toBeInTheDocument()
   })
 
   it('shows prev button disabled on first chapter', async () => {
+    const user = userEvent.setup()
     renderWithProviders(<ReaderPage />)
+    await user.click(await screen.findByRole('button', { name: /chapters/i }))
     const prev = await screen.findByRole('button', { name: /prev/i })
     expect(prev).toBeDisabled()
   })
 
   it('navigates to next chapter on next click', async () => {
     const user = userEvent.setup()
-    vi.mocked(api.fetchChapterContent).mockResolvedValue(mockContent)
+    vi.mocked(api.fetchChapterContent).mockImplementation(async (_documentId, chapterIndex) => ({
+      ...mockContent,
+      chapter_index: chapterIndex,
+      chapter_title: chapterIndex === 1 ? 'Chapter 1' : 'Introduction',
+    }))
     renderWithProviders(<ReaderPage />)
 
+    await user.click(await screen.findByRole('button', { name: /chapters/i }))
     await user.click(await screen.findByRole('button', { name: /next/i }))
     expect(await screen.findByText(/Chapter 1/i)).toBeInTheDocument()
   })
@@ -118,6 +147,14 @@ describe('ReaderPage', () => {
     await user.click(chapter)
 
     expect(screen.getByText(/vocabulary/i)).toBeInTheDocument()
+  })
+
+  it('toggles the chapter menu', async () => {
+    const user = userEvent.setup()
+    renderWithProviders(<ReaderPage />)
+
+    await user.click(await screen.findByRole('button', { name: /chapters/i }))
+    expect(screen.getByLabelText(/jump to chapter/i)).toBeInTheDocument()
   })
 
   it('clear button removes all words from panel', async () => {

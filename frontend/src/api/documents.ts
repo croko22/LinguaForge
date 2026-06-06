@@ -22,6 +22,12 @@ export async function fetchDocuments(): Promise<DocumentSummary[]> {
   return res.json()
 }
 
+export async function fetchDocument(documentId: string): Promise<DocumentSummary> {
+  const res = await fetch(`${API_BASE}/documents/${documentId}`)
+  if (!res.ok) throw new Error('Failed to fetch document')
+  return res.json()
+}
+
 export async function uploadDocument(file: File): Promise<DocumentSummary> {
   const formData = new FormData()
   formData.append('file', file)
