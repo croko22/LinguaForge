@@ -1,5 +1,6 @@
 export interface ReaderPaginationMetrics {
   viewportHeight: number
+  viewportWidth?: number
   fontSize: number
   lineHeight: number
   chromeHeight?: number
@@ -8,7 +9,6 @@ export interface ReaderPaginationMetrics {
 export interface ReaderPaginationOptions {
   minWordsPerPage?: number
   maxWordsPerPage?: number
-  wordsPerLineFactor?: number
 }
 
 function splitParagraphs(content: string): string[] {
@@ -34,11 +34,14 @@ export function paginateReaderContent(
   const availableHeight = Math.max(0, metrics.viewportHeight - chromeHeight)
   const lineHeightPx = Math.max(1, metrics.fontSize * 16 * metrics.lineHeight)
   const estimatedLines = availableHeight / lineHeightPx
-  const wordsPerLineFactor = options.wordsPerLineFactor ?? 12
-  const minWordsPerPage = options.minWordsPerPage ?? 160
-  const maxWordsPerPage = options.maxWordsPerPage ?? 280
+  const viewportWidth = metrics.viewportWidth ?? 0
+  const estimatedWordsPerLine = viewportWidth > 0
+    ? Math.floor(viewportWidth / (metrics.fontSize * 16 * 0.35))
+    : 12
+  const minWordsPerPage = options.minWordsPerPage ?? 30
+  const maxWordsPerPage = options.maxWordsPerPage ?? 1200
   const wordsPerPage = clamp(
-    Math.round(estimatedLines * wordsPerLineFactor),
+    Math.round(estimatedLines * estimatedWordsPerLine),
     minWordsPerPage,
     maxWordsPerPage,
   )

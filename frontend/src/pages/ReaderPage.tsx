@@ -36,6 +36,8 @@ export default function ReaderPage() {
   const [clickedWords, setClickedWords] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
+  const [viewportWidth, setViewportWidth] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const chapterMenuRef = useRef<HTMLDivElement>(null);
 
@@ -45,17 +47,13 @@ export default function ReaderPage() {
         chapter?.content ?? '',
         {
           viewportHeight,
+          viewportWidth,
           fontSize,
           lineHeight,
           chromeHeight: 96,
         },
-        {
-          minWordsPerPage: 260,
-          maxWordsPerPage: 380,
-          wordsPerLineFactor: 12,
-        },
       ),
-    [chapter?.content, fontSize, lineHeight, viewportHeight],
+    [chapter?.content, fontSize, lineHeight, viewportHeight, viewportWidth],
   );
 
   useEffect(() => {
@@ -68,6 +66,7 @@ export default function ReaderPage() {
     const calculate = () => {
       if (!viewportRef.current) return
       setViewportHeight(viewportRef.current.clientHeight)
+      setViewportWidth(viewportRef.current.clientWidth)
     }
 
     const frame = window.requestAnimationFrame(calculate)
@@ -99,6 +98,15 @@ export default function ReaderPage() {
       document.removeEventListener('mousedown', handleClickOutside)
       document.removeEventListener('keydown', handleEscape)
     }
+  }, [])
+
+  useEffect(() => {
+    if (!window.matchMedia) return
+    const mq = window.matchMedia('(max-width: 767px)')
+    setIsMobile(mq.matches)
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
+    mq.addEventListener('change', handler)
+    return () => mq.removeEventListener('change', handler)
   }, [])
 
   useEffect(() => {
@@ -208,7 +216,7 @@ export default function ReaderPage() {
       {/* Main area */}
       <div className="flex-1 flex flex-col overflow-hidden relative min-w-0">
         {/* Header - neutral bg, never changes with theme */}
-        <header className="bg-surface border-b px-4 py-3 flex items-center justify-between gap-3 shrink-0 relative">
+        <header className="bg-surface border-b px-4 py-2 md:py-3 flex items-center justify-between gap-3 shrink-0 relative">
           <div className="flex items-center gap-3 min-w-0 flex-1">
             <a
               href="/"
@@ -230,14 +238,19 @@ export default function ReaderPage() {
               onClick={() => setShowSidebar(s => !s)}
               className="px-3 py-1.5 border border-border rounded-lg text-sm text-text-secondary hover:bg-surface-hover transition-colors"
             >
-              {showSidebar ? 'Hide vocab' : 'Show vocab'}
+              <span className="md:hidden">{showSidebar ? 'Hide' : 'Show'}</span>
+              <span className="hidden md:inline">{showSidebar ? 'Hide vocab' : 'Show vocab'}</span>
             </button>
             <div className="relative" ref={chapterMenuRef}>
               <button
                 onClick={() => setShowChapters(s => !s)}
-                className="px-3 py-1.5 border border-border rounded-lg text-sm text-text hover:bg-surface-hover transition-colors"
+                className="px-3 py-1.5 border border-border rounded-lg text-sm text-text hover:bg-surface-hover transition-colors flex items-center gap-1.5"
+                aria-label="Chapters"
               >
-                Chapters
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                <span className="hidden md:inline">Chapters</span>
               </button>
               {showChapters && (
                 <div className="absolute right-0 top-full mt-2 w-80 rounded-2xl border border-border bg-surface shadow-xl p-3 z-50">
@@ -308,7 +321,7 @@ export default function ReaderPage() {
             <TextDisplay content={pages[safeCurrentPage] ?? chapter.content} onWordClick={handleWordClick} />
           </div>
           <div className="pointer-events-none absolute bottom-3 right-3">
-            <div className="rounded-full border border-border/80 bg-surface/95 px-2.5 py-1 text-[10px] font-medium text-text shadow-sm backdrop-blur">
+            <div className="rounded-full border border-border/80 bg-surface/95 px-2.5 py-1 text-xs md:text-[10px] font-medium text-text shadow-sm backdrop-blur">
               Page {safeCurrentPage + 1} / {Math.max(1, totalPages)}
             </div>
           </div>
@@ -327,13 +340,28 @@ export default function ReaderPage() {
         )}
       </div>
 
-      {/* Sidebar - neutral bg */}
-      {showSidebar && (
+      {/* Sidebar - Desktop: side-by-side. Mobile: overlay */}
+      {showSidebar && !isMobile && (
         <aside className="w-80 border-l bg-surface-muted flex flex-col overflow-y-auto">
           <div className="p-4">
             <WordPanel words={clickedWords} onClear={() => setClickedWords([])} />
           </div>
         </aside>
+      )}
+
+      {/* Mobile sidebar overlay with backdrop */}
+      {showSidebar && isMobile && (
+        <div className="fixed inset-0 z-50">
+          <div
+            className="fixed inset-0 bg-black/40 backdrop-blur-sm"
+            onClick={() => setShowSidebar(false)}
+          />
+          <div className="fixed right-0 top-0 h-full w-full max-w-sm bg-surface-muted shadow-xl">
+            <div className="p-4 overflow-y-auto h-full">
+              <WordPanel words={clickedWords} onClear={() => setClickedWords([])} />
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

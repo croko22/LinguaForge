@@ -2,9 +2,10 @@
 
 ## Frontend
 
-- **Reader**: The main reading view where document text is displayed chapter by chapter. Left side = text, right side = word panel.
+- **Reader**: The main reading view where document text is displayed chapter by chapter. Desktop: text left, vocab panel right. Mobile: text full-width, vocab panel as slide-over overlay.
+- **Reader Pagination**: Splits chapter content into pages that fill the viewport. Uses viewport height + width + font size + line height to estimate words-per-page. No hard caps (safety rails only at 30–1200). Responsive — recalculates on resize. Does NOT use Pretext or DOM measurement libraries; plain heuristic with width-aware estimation.
 - **Word Popover**: Inline tooltip that appears on clicking a word, showing translation, TTS button, and save action.
-- **Word Panel**: Right-side column that accumulates clicked words during a reading session, showing them in a scrollable list with translations.
+- **Word Panel**: Accumulates clicked words during a reading session. Desktop: right-side column. Mobile: slide-over overlay with backdrop.
 - **Library**: Document list view — shows all uploaded documents with metadata.
 - **Chapter Navigation**: Controls to move between chapters (prev/next buttons, chapter dropdown).
 
