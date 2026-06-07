@@ -46,7 +46,7 @@ export default function ReaderPage() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const chapterMenuRef = useRef<HTMLDivElement>(null);
   const restoreDoneRef = useRef(false);
-  const restoreCompletedRef = useRef(false);
+  const [restoreCompleted, setRestoreCompleted] = useState(false);
   const prevTotalPagesRef = useRef(0);
 
   const chapterContents = useQueries({
@@ -217,7 +217,7 @@ export default function ReaderPage() {
     [id, bookPagination],
   );
 
-  useEffect(() => {
+useEffect(() => {
     if (!bookPagination || restoreDoneRef.current) return;
     restoreDoneRef.current = true;
 
@@ -228,14 +228,14 @@ export default function ReaderPage() {
       if (range && range.start > 0) {
         setCurrentPage(range.start);
       }
-      requestAnimationFrame(() => { restoreCompletedRef.current = true; });
+      setRestoreCompleted(true);
       return;
     }
 
     const saved = getReadingProgress(id!);
     if (saved !== null) {
       setCurrentPage(Math.min(saved, bookPagination.pages.length - 1));
-      requestAnimationFrame(() => { restoreCompletedRef.current = true; });
+      setRestoreCompleted(true);
       return;
     }
 
@@ -248,28 +248,27 @@ export default function ReaderPage() {
             setCurrentPage(range.start);
           }
         }
-        requestAnimationFrame(() => { restoreCompletedRef.current = true; });
+        setRestoreCompleted(true);
       })
-      .catch(() => { restoreCompletedRef.current = true; });
+      .catch(() => { setRestoreCompleted(true); });
   }, [id, bookPagination, chapterIndexParam]);
 
   // When pagination recalculates (resize), re-apply saved position to new page count
   useEffect(() => {
-    if (!bookPagination) return;
+    if (!bookPagination || !restoreCompleted) return;
     const totalPages = bookPagination.pages.length;
     if (prevTotalPagesRef.current === 0) {
       prevTotalPagesRef.current = totalPages;
       return;
     }
-    // Only re-apply if page count changed significantly (resize/re-pagination)
-    if (prevTotalPagesRef.current !== totalPages && restoreCompletedRef.current) {
+    if (prevTotalPagesRef.current !== totalPages) {
       const saved = getReadingProgress(id!);
       if (saved !== null) {
         setCurrentPage(Math.min(saved, totalPages - 1));
       }
     }
     prevTotalPagesRef.current = totalPages;
-  }, [bookPagination, id]);
+  }, [bookPagination, id, restoreCompleted]);
 
   useEffect(() => {
     if (!bookPagination) return;
@@ -279,12 +278,12 @@ export default function ReaderPage() {
   }, [currentPage, bookPagination, maxPage]);
 
   useEffect(() => {
-    if (!id || !restoreCompletedRef.current) return;
+    if (!id || !restoreCompleted) return;
     const chapterIndex = bookPagination?.pages[currentPage]?.chapterIndex;
     if (chapterIndex !== undefined) {
       setReadingProgress(id, currentPage, chapterIndex);
     }
-  }, [id, currentPage, bookPagination]);
+  }, [id, currentPage, bookPagination, restoreCompleted]);
 
   const allContentFailed =
     chapters &&
