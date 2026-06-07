@@ -11,6 +11,14 @@ import type { Chapter, ChapterContent } from '../api/documents'
 const mockFetch = vi.fn()
 vi.stubGlobal('fetch', mockFetch)
 
+const { mockGetProgress } = vi.hoisted(() => ({
+  mockGetProgress: vi.fn().mockResolvedValue(null),
+}))
+
+vi.mock('../api/progress', () => ({
+  getReadingProgress: mockGetProgress,
+  saveReadingProgress: vi.fn().mockResolvedValue({ chapter_index: 0, percentage: 0 }),
+}))
 
 vi.mock('../api/documents', () => ({
   fetchDocuments: vi.fn(),
@@ -20,14 +28,18 @@ vi.mock('../api/documents', () => ({
   fetchChapterContent: vi.fn(),
 }))
 
-function renderWithProviders(ui: React.ReactElement) {
+function renderWithProviders(
+  ui: React.ReactElement,
+  initialEntries = ['/read/doc-1/0'],
+) {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={['/read/doc-1/0']}>
+      <MemoryRouter initialEntries={initialEntries}>
         <Routes>
+          <Route path="/read/:id" element={ui} />
           <Route path="/read/:id/:chapterIndex" element={ui} />
         </Routes>
       </MemoryRouter>
@@ -60,6 +72,7 @@ describe('ReaderPage', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
+    mockGetProgress.mockResolvedValue(null)
     vi.mocked(api.fetchChapters).mockResolvedValue(mockChapters)
     vi.mocked(api.fetchChapterContent).mockResolvedValue(mockContent)
     vi.mocked(api.fetchDocument).mockResolvedValue(mockDocument)
@@ -78,6 +91,21 @@ describe('ReaderPage', () => {
   it('shows a visible page indicator', async () => {
     renderWithProviders(<ReaderPage />)
     expect(await screen.findByText(/page 1 \/ 3/i)).toBeInTheDocument()
+  })
+
+  it('restores saved page progress when opened from the library route', async () => {
+    const user = userEvent.setup()
+    const firstRender = renderWithProviders(<ReaderPage />)
+
+    expect(await screen.findByText(/page 1 \/ 3/i)).toBeInTheDocument()
+    await user.keyboard('{ArrowRight}')
+    expect(await screen.findByText(/page 2 \/ 3/i)).toBeInTheDocument()
+
+    firstRender.unmount()
+    mockGetProgress.mockResolvedValueOnce({ chapter_index: 1, percentage: 50 })
+    renderWithProviders(<ReaderPage />, ['/read/doc-1'])
+
+    expect(await screen.findByText(/page 2 \/ 3/i)).toBeInTheDocument()
   })
 
   it('renders chapter content text', async () => {

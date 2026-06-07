@@ -11,10 +11,7 @@ import { useParams } from "react-router-dom";
 import { useQueries } from "@tanstack/react-query";
 import { useChapters, useDocument } from "../hooks/useReader";
 import { useReaderSettings } from "../store/readerSettings";
-import {
-  getReadingProgress,
-  setReadingProgress,
-} from "../hooks/useReadingProgress";
+import { useReadingProgress } from "../hooks/useReadingProgress";
 import { fetchChapterContent } from "../api/documents";
 import TextDisplay from "../components/TextDisplay";
 import WordPopover from "../components/WordPopover";
@@ -35,22 +32,18 @@ export default function ReaderPage() {
   const { data: book, isError: documentError } = useDocument(id ?? "");
   const { data: chapters, isError: chaptersError } = useChapters(id ?? "");
 
+  const { savedChapterIndex, saveProgress } = useReadingProgress(id ?? "");
+
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null);
   const [clickedWords, setClickedWords] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(() => {
-    if (id) {
-      const saved = getReadingProgress(id);
-      if (saved !== null) return saved;
-    }
-    return 0;
-  });
+  const [currentPage, setCurrentPage] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const chapterMenuRef = useRef<HTMLDivElement>(null);
-  const chapterJumpDoneRef = useRef(false);
+  const restoreDoneRef = useRef(false);
 
   const chapterContents = useQueries({
     queries: (chapters ?? []).map((ch) => ({
@@ -214,21 +207,32 @@ export default function ReaderPage() {
       setCurrentPage(range.start);
       setShowChapters(false);
       if (id) {
-        setReadingProgress(id, range.start, chapterIndex);
+        saveProgress(chapterIndex)
       }
     },
-    [id, bookPagination],
+    [id, bookPagination, saveProgress],
   );
 
-// Jump to chapter from URL param (one-time)
+  // URL param jump (takes priority over saved progress)
   useEffect(() => {
-    if (!chapterIndexParam || !bookPagination || chapterJumpDoneRef.current) return;
-    chapterJumpDoneRef.current = true;
+    if (!chapterIndexParam || !bookPagination || restoreDoneRef.current) return;
+    restoreDoneRef.current = true;
     const range = bookPagination.chapterPageRanges.get(parseInt(chapterIndexParam, 10));
     if (range) {
       setCurrentPage(range.start);
     }
   }, [chapterIndexParam, bookPagination]);
+
+  // Restore saved progress from DB (one-time, only if no URL param)
+  useEffect(() => {
+    if (restoreDoneRef.current) return;
+    if (!bookPagination || savedChapterIndex === null) return;
+    restoreDoneRef.current = true;
+    const range = bookPagination.chapterPageRanges.get(savedChapterIndex);
+    if (range) {
+      setCurrentPage(range.start);
+    }
+  }, [bookPagination, savedChapterIndex]);
 
   // Clamp page when pagination changes (resize, content load)
   useEffect(() => {
@@ -238,14 +242,14 @@ export default function ReaderPage() {
     }
   }, [bookPagination]);
 
-  // Save progress on every page change (localStorage immediate, DB debounced)
+  // Save progress on every page change (DB, debounced)
   useEffect(() => {
-    if (!id || !bookPagination) return;
-    const chapterIndex = bookPagination.pages[currentPage]?.chapterIndex;
+    if (!bookPagination || !id) return
+    const chapterIndex = bookPagination.pages[currentPage]?.chapterIndex
     if (chapterIndex !== undefined) {
-      setReadingProgress(id, currentPage, chapterIndex);
+      saveProgress(chapterIndex)
     }
-  }, [id, currentPage, bookPagination]);
+  }, [id, currentPage, bookPagination, saveProgress])
 
   const allContentFailed =
     chapters &&

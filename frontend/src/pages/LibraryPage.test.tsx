@@ -33,6 +33,7 @@ function renderWithProviders(ui: React.ReactElement) {
       <MemoryRouter>
         <Routes>
           <Route path="/" element={ui} />
+          <Route path="/read/:id" element={<div>Reader Page</div>} />
           <Route path="/read/:id/:chapterIndex" element={<div>Reader Page</div>} />
         </Routes>
         <LocationDisplay />
@@ -120,7 +121,7 @@ describe('LibraryPage', () => {
 
     renderWithProviders(<LibraryPage />)
     await user.click(await screen.findByRole('heading', { name: /Test Book/ }))
-    expect(screen.getByTestId('location').textContent).toBe('/read/1/0')
+    expect(screen.getByTestId('location').textContent).toBe('/read/1')
   })
 
   it('opens upload dialog when upload button is clicked', async () => {

@@ -25,7 +25,7 @@ export default function LibraryPage() {
 
   const handleDocumentClick = (id: string, status: string) => {
     if (status === 'ready') {
-      navigate(`/read/${id}/0`)
+      navigate(`/read/${id}`)
     }
   }
 
