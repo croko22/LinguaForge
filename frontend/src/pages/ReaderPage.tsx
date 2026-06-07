@@ -47,6 +47,7 @@ export default function ReaderPage() {
   const chapterMenuRef = useRef<HTMLDivElement>(null);
   const restoreDoneRef = useRef(false);
   const restoreCompletedRef = useRef(false);
+  const prevTotalPagesRef = useRef(0);
 
   const chapterContents = useQueries({
     queries: (chapters ?? []).map((ch) => ({
@@ -251,6 +252,24 @@ export default function ReaderPage() {
       })
       .catch(() => { restoreCompletedRef.current = true; });
   }, [id, bookPagination, chapterIndexParam]);
+
+  // When pagination recalculates (resize), re-apply saved position to new page count
+  useEffect(() => {
+    if (!bookPagination) return;
+    const totalPages = bookPagination.pages.length;
+    if (prevTotalPagesRef.current === 0) {
+      prevTotalPagesRef.current = totalPages;
+      return;
+    }
+    // Only re-apply if page count changed significantly (resize/re-pagination)
+    if (prevTotalPagesRef.current !== totalPages && restoreCompletedRef.current) {
+      const saved = getReadingProgress(id!);
+      if (saved !== null) {
+        setCurrentPage(Math.min(saved, totalPages - 1));
+      }
+    }
+    prevTotalPagesRef.current = totalPages;
+  }, [bookPagination, id]);
 
   useEffect(() => {
     if (!bookPagination) return;
