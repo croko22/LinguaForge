@@ -77,7 +77,7 @@ describe('ReaderPage', () => {
 
   it('shows a visible page indicator', async () => {
     renderWithProviders(<ReaderPage />)
-    expect(await screen.findByText(/page 1 \/ 1/i)).toBeInTheDocument()
+    expect(await screen.findByText(/page 1 \/ 3/i)).toBeInTheDocument()
   })
 
   it('renders chapter content text', async () => {

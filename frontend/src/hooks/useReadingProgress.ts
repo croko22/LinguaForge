@@ -1,12 +1,12 @@
-import { saveReadingProgress, getReadingProgress } from '../api/progress'
+import { saveReadingProgress, getReadingProgress as getProgressFromAPI } from '../api/progress'
 
-const STORAGE_KEY = 'linguaforge-reading-progress'
+const STORAGE_KEY = 'linguaforge-reading-page-v2'
 
-interface ReadingProgress {
+interface PageProgress {
   [documentId: string]: number
 }
 
-function loadLocal(): ReadingProgress {
+function loadLocal(): PageProgress {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     return raw ? JSON.parse(raw) : {}
@@ -15,10 +15,10 @@ function loadLocal(): ReadingProgress {
   }
 }
 
-function saveLocal(documentId: string, chapterIndex: number): void {
+function saveLocal(documentId: string, globalPageIndex: number): void {
   try {
     const progress = loadLocal()
-    progress[documentId] = chapterIndex
+    progress[documentId] = globalPageIndex
     localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
   } catch {}
 }
@@ -35,14 +35,20 @@ export function getReadingProgress(documentId: string): number | null {
 
 export async function getReadingProgressFromDB(documentId: string): Promise<number | null> {
   try {
-    const result = await getReadingProgress(documentId)
+    const result = await getProgressFromAPI(documentId)
     return result?.chapter_index ?? null
   } catch {
     return null
   }
 }
 
-export async function setReadingProgress(documentId: string, chapterIndex: number): Promise<void> {
-  saveLocal(documentId, chapterIndex)
-  saveReadingProgress(documentId, chapterIndex).catch(() => {})
+export async function setReadingProgress(
+  documentId: string,
+  globalPageIndex: number,
+  chapterIndex?: number,
+): Promise<void> {
+  saveLocal(documentId, globalPageIndex)
+  if (chapterIndex !== undefined) {
+    saveReadingProgress(documentId, chapterIndex).catch(() => {})
+  }
 }
