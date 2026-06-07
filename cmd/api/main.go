@@ -50,6 +50,7 @@ func main() {
 	// 4. Create dependencies
 	docRepo := repository.NewDocumentRepository(db)
 	chRepo := repository.NewChapterRepository(db)
+	progRepo := repository.NewReadingProgressRepository(db)
 	fileStorage, err := storage.NewLocalFileStorage(cfg.UploadDir)
 	if err != nil {
 		slog.Error("failed to create file storage", "error", err)
@@ -57,7 +58,7 @@ func main() {
 	}
 	epubParser := parser.NewEpubParser()
 	pdfParser := parser.NewPdfParser()
-	docService := service.NewDocumentService(docRepo, chRepo, fileStorage, []parser.Parser{epubParser, pdfParser})
+	docService := service.NewDocumentService(docRepo, chRepo, progRepo, fileStorage, []parser.Parser{epubParser, pdfParser})
 	pool := worker.New(2, 10, docService.ProcessBook)
 	pool.Start()
 	defer pool.Stop()

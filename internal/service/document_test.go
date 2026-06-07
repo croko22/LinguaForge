@@ -134,6 +134,7 @@ func newTestService(t *testing.T, opts ...testOpt) (*DocumentService, *sql.DB, f
 
 	docRepo := repository.NewDocumentRepository(db)
 	chRepo := repository.NewChapterRepository(db)
+	progRepo := repository.NewReadingProgressRepository(db)
 
 	var fileStore storage.FileStorage
 	if cfg.storage != nil {
@@ -148,7 +149,7 @@ func newTestService(t *testing.T, opts ...testOpt) (*DocumentService, *sql.DB, f
 		fileStore = fs
 	}
 
-	svc := NewDocumentService(docRepo, chRepo, fileStore, cfg.parsers)
+	svc := NewDocumentService(docRepo, chRepo, progRepo, fileStore, cfg.parsers)
 	if cfg.enqueue != nil {
 		svc.SetEnqueueFunc(cfg.enqueue)
 	}

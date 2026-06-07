@@ -3,7 +3,8 @@
 ## Frontend
 
 - **Reader**: The main reading view where document text is displayed chapter by chapter. Desktop: text left, vocab panel right. Mobile: text full-width, vocab panel as slide-over overlay.
-- **Reader Pagination**: Splits chapter content into pages that fill the viewport. Uses viewport height + width + font size + line height to estimate words-per-page. No hard caps (safety rails only at 30–1200). Responsive — recalculates on resize. Does NOT use Pretext or DOM measurement libraries; plain heuristic with width-aware estimation.
+- **Reader Pagination**: Splits chapter content into pages that fill the viewport. Text container is `max-w-[68ch]` (~68 chars → ~11 words/line). Uses viewport height + lineHeight to estimate lines-per-page, then `lines * wordsPerLine = wordsPerPage`. Safety rails 30–1200. Recalculates on resize. Does NOT use Pretext or DOM measurement libs.
+- **Reading Progress**: Persisted in DB (`reading_progress` table: document_id, chapter_index, percentage). localStorage used as instant cache for fast page restore. API: `PUT /api/documents/{id}/progress`, `GET /api/documents/{id}/progress`. Percentage = `(chapterIndex + 1) / totalChapters * 100`. Library cards show thin emerald progress bar.
 - **Word Popover**: Inline tooltip that appears on clicking a word, showing translation, TTS button, and save action.
 - **Word Panel**: Accumulates clicked words during a reading session. Desktop: right-side column. Mobile: slide-over overlay with backdrop.
 - **Library**: Document list view — shows all uploaded documents with metadata.

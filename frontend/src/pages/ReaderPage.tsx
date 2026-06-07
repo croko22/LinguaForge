@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef, type MouseEvent } fr
 import { useParams } from "react-router-dom";
 import { useChapters, useChapterContent, useDocument } from "../hooks/useReader";
 import { useReaderSettings } from "../store/readerSettings";
-import { getReadingProgress, setReadingProgress } from "../hooks/useReadingProgress";
+import { getReadingProgress, getReadingProgressFromDB, setReadingProgress } from "../hooks/useReadingProgress";
 import TextDisplay from "../components/TextDisplay";
 import WordPopover from "../components/WordPopover";
 import WordPanel from "../components/WordPanel";
@@ -20,6 +20,16 @@ export default function ReaderPage() {
     }
     return 0
   });
+
+  useEffect(() => {
+    if (!id || chapterIndexParam || initialLoadDone.current) return
+    initialLoadDone.current = true
+    getReadingProgressFromDB(id).then(saved => {
+      if (saved !== null) {
+        setCurrentChapter(saved)
+      }
+    }).catch(() => {})
+  }, [id, chapterIndexParam])
   const [showSettings, setShowSettings] = useState(false);
   const [showChapters, setShowChapters] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
@@ -40,6 +50,7 @@ export default function ReaderPage() {
   const [isMobile, setIsMobile] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const chapterMenuRef = useRef<HTMLDivElement>(null);
+  const initialLoadDone = useRef(false);
 
   const pages = useMemo(
     () =>

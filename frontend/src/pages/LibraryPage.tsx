@@ -189,6 +189,7 @@ function DocumentList({ documents, onDocumentClick }: { documents: DocumentSumma
             <th className="px-6 py-3">Type</th>
             <th className="px-6 py-3">Chapters</th>
             <th className="px-6 py-3">Language</th>
+            <th className="px-6 py-3">Progress</th>
             <th className="px-6 py-3">Status</th>
             <th className="px-6 py-3 w-16"></th>
           </tr>
@@ -220,6 +221,23 @@ function DocumentList({ documents, onDocumentClick }: { documents: DocumentSumma
               <td className="px-6 py-4 text-sm text-text-secondary uppercase">{doc.file_type}</td>
               <td className="px-6 py-4 text-sm text-text-secondary">{doc.chapter_count}</td>
               <td className="px-6 py-4 text-sm text-text-secondary">{doc.language || '-'}</td>
+              <td className="px-6 py-4">
+                {doc.progress_percentage && doc.progress_percentage > 0 && doc.progress_percentage < 100 ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-16 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-emerald-500 rounded-full transition-all duration-300"
+                        style={{ width: `${Math.min(100, doc.progress_percentage)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs text-text-muted">{Math.round(doc.progress_percentage)}%</span>
+                  </div>
+                ) : doc.progress_percentage && doc.progress_percentage >= 100 ? (
+                  <span className="text-xs text-emerald-600 font-medium">Complete</span>
+                ) : (
+                  <span className="text-xs text-text-muted">-</span>
+                )}
+              </td>
               <td className="px-6 py-4">
                 {doc.status === 'error' ? (
                   <span className="group/error relative inline-block">
@@ -366,6 +384,14 @@ function DocumentCard({
           </span>
         )}
       </div>
+      {doc.progress_percentage && doc.progress_percentage > 0 && doc.progress_percentage < 100 && (
+        <div className="h-1 bg-gray-100">
+          <div
+            className="h-full bg-emerald-500 transition-all duration-300"
+            style={{ width: `${Math.min(100, doc.progress_percentage)}%` }}
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -12,6 +12,7 @@ export interface DocumentSummary {
   created_at: string
   cover_url?: string
   error_message?: string
+  progress_percentage?: number
 }
 
 export type { Chapter, ChapterContent }

@@ -29,25 +29,28 @@ var (
 
 // DocumentService provides business logic for document management.
 type DocumentService struct {
-	docRepo repository.DocumentRepository
-	chRepo  repository.ChapterRepository
-	storage storage.FileStorage
-	parsers []parser.Parser
-	enqueue func(worker.Job) error
+	docRepo  repository.DocumentRepository
+	chRepo   repository.ChapterRepository
+	progRepo repository.ReadingProgressRepository
+	storage  storage.FileStorage
+	parsers  []parser.Parser
+	enqueue  func(worker.Job) error
 }
 
 // NewDocumentService creates a new DocumentService.
 func NewDocumentService(
 	docRepo repository.DocumentRepository,
 	chRepo repository.ChapterRepository,
+	progRepo repository.ReadingProgressRepository,
 	storage storage.FileStorage,
 	parsers []parser.Parser,
 ) *DocumentService {
 	return &DocumentService{
-		docRepo: docRepo,
-		chRepo:  chRepo,
-		storage: storage,
-		parsers: parsers,
+		docRepo:  docRepo,
+		chRepo:   chRepo,
+		progRepo: progRepo,
+		storage:  storage,
+		parsers:  parsers,
 	}
 }
 
@@ -298,6 +301,37 @@ func (s *DocumentService) GetChapterContent(ctx context.Context, documentID stri
 		return nil, fmt.Errorf("get chapter content: %w", err)
 	}
 	return chapter, nil
+}
+
+// SaveProgress saves reading progress for a document.
+// It calculates percentage as ((chapterIndex + 1) / totalChapters) * 100.
+func (s *DocumentService) SaveProgress(ctx context.Context, documentID string, chapterIndex int) (*model.ReadingProgress, error) {
+	doc, err := s.docRepo.GetByID(ctx, documentID)
+	if err != nil {
+		return nil, fmt.Errorf("save progress: get document: %w", err)
+	}
+
+	totalChapters := doc.ChapterCount
+	if totalChapters < 1 {
+		totalChapters = 1
+	}
+	percentage := float64(chapterIndex+1) / float64(totalChapters) * 100
+
+	progress, err := s.progRepo.Upsert(documentID, chapterIndex, percentage)
+	if err != nil {
+		return nil, fmt.Errorf("save progress: %w", err)
+	}
+
+	return progress, nil
+}
+
+// GetProgress returns reading progress for a document.
+func (s *DocumentService) GetProgress(ctx context.Context, documentID string) (*model.ReadingProgress, error) {
+	progress, err := s.progRepo.GetByDocumentID(documentID)
+	if err != nil {
+		return nil, fmt.Errorf("get progress: %w", err)
+	}
+	return progress, nil
 }
 
 // fileTypeFromFilename extracts the file extension without the leading dot.

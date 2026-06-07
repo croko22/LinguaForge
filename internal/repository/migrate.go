@@ -18,6 +18,9 @@ var migration003 string
 //go:embed 004_srs.sql
 var migration004 string
 
+//go:embed 005_reading_progress.sql
+var migration005 string
+
 type migration struct {
 	version int
 	sql     string
@@ -28,6 +31,7 @@ var migrations = []migration{
 	{2, migration002},
 	{3, migration003},
 	{4, migration004},
+	{5, migration005},
 }
 
 func RunMigrations(db *sql.DB) error {

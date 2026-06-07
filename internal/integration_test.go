@@ -232,6 +232,7 @@ func setupIntegrationTest(t *testing.T) (*testDeps, func()) {
 	// ── Create dependencies ────────────────────────────────────────────────
 	docRepo := repository.NewDocumentRepository(db)
 	chRepo := repository.NewChapterRepository(db)
+	progRepo := repository.NewReadingProgressRepository(db)
 
 	fileStorage, err := storage.NewLocalFileStorage(tempDir)
 	if err != nil {
@@ -241,7 +242,7 @@ func setupIntegrationTest(t *testing.T) (*testDeps, func()) {
 	}
 
 	epubParser := parser.NewEpubParser()
-	docService := service.NewDocumentService(docRepo, chRepo, fileStorage, []parser.Parser{epubParser})
+	docService := service.NewDocumentService(docRepo, chRepo, progRepo, fileStorage, []parser.Parser{epubParser})
 	pool := worker.New(2, 10, docService.ProcessBook)
 	pool.Start()
 	docService.SetEnqueueFunc(pool.Enqueue)

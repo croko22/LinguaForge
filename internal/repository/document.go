@@ -102,11 +102,13 @@ func (r *documentRepo) GetByID(ctx context.Context, id string) (*model.Document,
 
 func (r *documentRepo) List(ctx context.Context) ([]*model.DocumentSummary, error) {
 	query := `
-		SELECT id, title, file_type, file_size, status,
-		       COALESCE(error_message, ''), COALESCE(language, ''),
-		       chapter_count, COALESCE(cover_path, ''), created_at
-		FROM documents
-		ORDER BY created_at DESC
+		SELECT d.id, d.title, d.file_type, d.file_size, d.status,
+		       COALESCE(d.error_message, ''), COALESCE(d.language, ''),
+		       d.chapter_count, COALESCE(d.cover_path, ''), d.created_at,
+		       COALESCE(rp.percentage, 0)
+		FROM documents d
+		LEFT JOIN reading_progress rp ON rp.document_id = d.id
+		ORDER BY d.created_at DESC
 	`
 	rows, err := r.db.QueryContext(ctx, query)
 	if err != nil {
@@ -129,6 +131,7 @@ func (r *documentRepo) List(ctx context.Context) ([]*model.DocumentSummary, erro
 			&s.ChapterCount,
 			&s.CoverURL,
 			&createdRaw,
+			&s.ProgressPercentage,
 		); err != nil {
 			return nil, fmt.Errorf("list documents scan: %w", err)
 		}
@@ -199,6 +202,9 @@ func (r *documentRepo) UpdateMetadata(ctx context.Context, doc *model.Document) 
 }
 
 func (r *documentRepo) Delete(ctx context.Context, id string) error {
+	if err := r.deleteReadingProgress(ctx, id); err != nil {
+		return fmt.Errorf("delete reading progress: %w", err)
+	}
 	if err := r.deleteWordReviews(ctx, id); err != nil {
 		return fmt.Errorf("delete word reviews: %w", err)
 	}
@@ -245,6 +251,14 @@ func (r *documentRepo) deleteChapters(ctx context.Context, documentID string) er
 	_, err := r.db.ExecContext(ctx, "DELETE FROM document_chapters WHERE document_id = ?", documentID)
 	if err != nil {
 		return fmt.Errorf("delete chapters: %w", err)
+	}
+	return nil
+}
+
+func (r *documentRepo) deleteReadingProgress(ctx context.Context, documentID string) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM reading_progress WHERE document_id = ?", documentID)
+	if err != nil {
+		return fmt.Errorf("delete reading progress: %w", err)
 	}
 	return nil
 }

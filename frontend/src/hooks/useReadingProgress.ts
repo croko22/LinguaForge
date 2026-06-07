@@ -1,10 +1,12 @@
+import { saveReadingProgress, getReadingProgress } from '../api/progress'
+
 const STORAGE_KEY = 'linguaforge-reading-progress'
 
 interface ReadingProgress {
   [documentId: string]: number
 }
 
-function loadProgress(): ReadingProgress {
+function loadLocal(): ReadingProgress {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
     return raw ? JSON.parse(raw) : {}
@@ -13,22 +15,34 @@ function loadProgress(): ReadingProgress {
   }
 }
 
-function saveProgress(documentId: string, chapterIndex: number): void {
+function saveLocal(documentId: string, chapterIndex: number): void {
   try {
-    const progress = loadProgress()
+    const progress = loadLocal()
     progress[documentId] = chapterIndex
     localStorage.setItem(STORAGE_KEY, JSON.stringify(progress))
-  } catch {
-    // localStorage not available, ignore
-  }
+  } catch {}
 }
 
 export function getReadingProgress(documentId: string): number | null {
-  const progress = loadProgress()
-  const saved = progress[documentId]
-  return typeof saved === 'number' ? saved : null
+  try {
+    const progress = loadLocal()
+    const saved = progress[documentId]
+    return typeof saved === 'number' ? saved : null
+  } catch {
+    return null
+  }
 }
 
-export function setReadingProgress(documentId: string, chapterIndex: number): void {
-  saveProgress(documentId, chapterIndex)
+export async function getReadingProgressFromDB(documentId: string): Promise<number | null> {
+  try {
+    const result = await getReadingProgress(documentId)
+    return result?.chapter_index ?? null
+  } catch {
+    return null
+  }
+}
+
+export async function setReadingProgress(documentId: string, chapterIndex: number): Promise<void> {
+  saveLocal(documentId, chapterIndex)
+  saveReadingProgress(documentId, chapterIndex).catch(() => {})
 }

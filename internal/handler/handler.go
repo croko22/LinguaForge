@@ -37,6 +37,8 @@ func (h *DocumentHandler) RegisterRoutes(r chi.Router) {
 		r.Get("/{id}/chapters", h.ListChapters)              // GET /api/documents/{id}/chapters
 		r.Get("/{id}/chapters/{index}", h.GetChapterContent) // GET /api/documents/{id}/chapters/{index}
 		r.Get("/{id}/cover", h.ServeCover)                   // GET /api/documents/{id}/cover
+		r.Put("/{id}/progress", h.SaveProgress)              // PUT /api/documents/{id}/progress
+		r.Get("/{id}/progress", h.GetProgress)               // GET /api/documents/{id}/progress
 	})
 }
 
@@ -214,6 +216,58 @@ func respondJSON(w http.ResponseWriter, status int, data interface{}) {
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		slog.Error("respondJSON: encode error", "error", err)
 	}
+}
+
+type saveProgressRequest struct {
+	ChapterIndex int `json:"chapter_index"`
+}
+
+// SaveProgress handles PUT /api/documents/{id}/progress.
+func (h *DocumentHandler) SaveProgress(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	var req saveProgressRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		respondError(w, http.StatusBadRequest, "invalid JSON body")
+		return
+	}
+
+	if req.ChapterIndex < 0 {
+		respondError(w, http.StatusBadRequest, "chapter_index must be >= 0")
+		return
+	}
+
+	progress, err := h.svc.SaveProgress(r.Context(), id, req.ChapterIndex)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			respondError(w, http.StatusNotFound, "document not found")
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "failed to save progress")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, progress)
+}
+
+// GetProgress handles GET /api/documents/{id}/progress.
+func (h *DocumentHandler) GetProgress(w http.ResponseWriter, r *http.Request) {
+	id := chi.URLParam(r, "id")
+
+	progress, err := h.svc.GetProgress(r.Context(), id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			respondJSON(w, http.StatusOK, map[string]any{
+				"chapter_index": 0,
+				"percentage":    0,
+			})
+			return
+		}
+		respondError(w, http.StatusInternalServerError, "failed to get progress")
+		return
+	}
+
+	respondJSON(w, http.StatusOK, progress)
 }
 
 // respondError writes a JSON error response with the given status and message.

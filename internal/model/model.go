@@ -32,16 +32,17 @@ type Chapter struct {
 
 // DocumentSummary is the lightweight view returned in document lists.
 type DocumentSummary struct {
-	ID           string    `json:"id"`
-	Title        string    `json:"title"`
-	FileType     string    `json:"file_type"`
-	FileSize     int64     `json:"file_size"`
-	Status       string    `json:"status"`
-	ErrorMessage string    `json:"error_message,omitempty"`
-	Language     string    `json:"language,omitempty"`
-	ChapterCount int       `json:"chapter_count"`
-	CoverURL     string    `json:"cover_url,omitempty"`
-	CreatedAt    time.Time `json:"created_at"`
+	ID                 string    `json:"id"`
+	Title              string    `json:"title"`
+	FileType           string    `json:"file_type"`
+	FileSize           int64     `json:"file_size"`
+	Status             string    `json:"status"`
+	ErrorMessage       string    `json:"error_message,omitempty"`
+	Language           string    `json:"language,omitempty"`
+	ChapterCount       int       `json:"chapter_count"`
+	CoverURL           string    `json:"cover_url,omitempty"`
+	CreatedAt          time.Time `json:"created_at"`
+	ProgressPercentage float64   `json:"progress_percentage"`
 }
 
 // ParsedDocument is the result of parsing an EPUB file (before DB storage).
@@ -92,6 +93,15 @@ type ReviewCard struct {
 	LastReviewedAt *time.Time `json:"last_reviewed_at,omitempty"`
 	CreatedAt      time.Time  `json:"created_at"`
 	UpdatedAt      time.Time  `json:"updated_at"`
+}
+
+// ReadingProgress represents a user's reading progress for a document.
+type ReadingProgress struct {
+	ID           string    `json:"id"`
+	DocumentID   string    `json:"document_id"`
+	ChapterIndex int       `json:"chapter_index"`
+	Percentage   float64   `json:"percentage"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // Document status constants

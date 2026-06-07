@@ -34,14 +34,17 @@ export function paginateReaderContent(
   const availableHeight = Math.max(0, metrics.viewportHeight - chromeHeight)
   const lineHeightPx = Math.max(1, metrics.fontSize * 16 * metrics.lineHeight)
   const estimatedLines = availableHeight / lineHeightPx
-  const viewportWidth = metrics.viewportWidth ?? 0
-  const estimatedWordsPerLine = viewportWidth > 0
-    ? Math.floor(viewportWidth / (metrics.fontSize * 16 * 0.35))
-    : 12
+  const maxChWidth = 68
+  const charWidthPx = metrics.fontSize * 16 * 0.6
+  const containerWidth = metrics.viewportWidth
+    ? Math.min(metrics.viewportWidth, maxChWidth * charWidthPx)
+    : maxChWidth * charWidthPx
+  const avgWordLength = 6
+  const wordsPerLine = Math.max(1, Math.floor(containerWidth / (avgWordLength * charWidthPx)))
   const minWordsPerPage = options.minWordsPerPage ?? 30
   const maxWordsPerPage = options.maxWordsPerPage ?? 1200
   const wordsPerPage = clamp(
-    Math.round(estimatedLines * estimatedWordsPerLine),
+    Math.round(estimatedLines * wordsPerLine),
     minWordsPerPage,
     maxWordsPerPage,
   )
