@@ -5,6 +5,7 @@ import {
   useMemo,
   useRef,
   memo,
+  useSyncExternalStore,
   type MouseEvent,
 } from "react";
 import { useParams } from "react-router-dom";
@@ -19,6 +20,22 @@ import WordPanel from "../components/WordPanel";
 import SettingsPanel from "../components/SettingsPanel";
 import { loadWords, saveWord } from "../api/words";
 import { paginateBook, type BookPagination } from "../services/bookPagination";
+
+function useMediaQuery(query: string): boolean {
+  const getSnapshot = () => {
+    if (typeof window === "undefined") return false;
+    return window.matchMedia(query).matches;
+  };
+  return useSyncExternalStore(
+    (callback) => {
+      const mq = window.matchMedia(query);
+      mq.addEventListener("change", callback);
+      return () => mq.removeEventListener("change", callback);
+    },
+    getSnapshot,
+    () => false,
+  );
+}
 
 const TextDisplayMemo = memo(TextDisplay);
 
@@ -40,7 +57,7 @@ export default function ReaderPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
-  const [isMobile, setIsMobile] = useState(false);
+const isMobile = useMediaQuery("(max-width: 767px)");
   const viewportRef = useRef<HTMLDivElement>(null);
   const chapterMenuRef = useRef<HTMLDivElement>(null);
   const restoreDoneRef = useRef(false);
@@ -124,15 +141,6 @@ export default function ReaderPage() {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("keydown", handleEscape);
     };
-  }, []);
-
-  useEffect(() => {
-    if (!window.matchMedia) return;
-    const mq = window.matchMedia("(max-width: 767px)");
-    setIsMobile(mq.matches);
-    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
-    mq.addEventListener("change", handler);
-    return () => mq.removeEventListener("change", handler);
   }, []);
 
   const totalPages = bookPagination?.pages.length ?? 0;
@@ -219,7 +227,7 @@ export default function ReaderPage() {
     restoreDoneRef.current = true;
     const range = bookPagination.chapterPageRanges.get(parseInt(chapterIndexParam, 10));
     if (range) {
-      setCurrentPage(range.start);
+      setCurrentPage(range.start); // eslint-disable-line react-hooks/set-state-in-effect -- syncing URL param to state
     }
   }, [chapterIndexParam, bookPagination]);
 
@@ -230,17 +238,15 @@ export default function ReaderPage() {
     restoreDoneRef.current = true;
     const range = bookPagination.chapterPageRanges.get(savedChapterIndex);
     if (range) {
-      setCurrentPage(range.start);
+      setCurrentPage(range.start); // eslint-disable-line react-hooks/set-state-in-effect -- syncing DB state to local state
     }
   }, [bookPagination, savedChapterIndex]);
 
   // Clamp page when pagination changes (resize, content load)
-  useEffect(() => {
-    if (!bookPagination) return;
-    if (currentPage >= bookPagination.pages.length) {
-      setCurrentPage(Math.max(0, bookPagination.pages.length - 1));
-    }
-  }, [bookPagination]);
+  const clampedPage = bookPagination ? Math.min(currentPage, Math.max(0, bookPagination.pages.length - 1)) : currentPage;
+  if (clampedPage !== currentPage && bookPagination) {
+    setCurrentPage(clampedPage);
+  }
 
   // Save progress on every page change (DB, debounced)
   useEffect(() => {

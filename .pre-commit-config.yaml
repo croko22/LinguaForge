@@ -30,3 +30,17 @@ repos:
         language: system
         types: [go]
         pass_filenames: false
+
+      - id: frontend-lint
+        name: frontend lint
+        entry: npm run lint --prefix frontend
+        language: system
+        files: ^frontend/
+        pass_filenames: false
+
+      - id: frontend-test
+        name: frontend test
+        entry: npm run test --prefix frontend
+        language: system
+        files: ^frontend/
+        pass_filenames: false
