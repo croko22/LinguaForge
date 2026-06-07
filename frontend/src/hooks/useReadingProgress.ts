@@ -1,4 +1,4 @@
-import { saveReadingProgress, getReadingProgress as getProgressFromAPI } from '../api/progress'
+import { saveReadingProgress as saveProgressAPI, getReadingProgress as getProgressFromAPI } from '../api/progress'
 
 const STORAGE_KEY = 'linguaforge-reading-page-v2'
 
@@ -42,13 +42,24 @@ export async function getReadingProgressFromDB(documentId: string): Promise<numb
   }
 }
 
-export async function setReadingProgress(
+let saveTimeout: ReturnType<typeof setTimeout> | null = null
+
+function saveProgressToDB(documentId: string, chapterIndex: number): void {
+  if (saveTimeout) clearTimeout(saveTimeout)
+  saveTimeout = setTimeout(() => {
+    saveProgressAPI(documentId, chapterIndex).catch(() => {
+      if (import.meta.env.DEV) console.warn('Failed to save progress to DB')
+    })
+  }, 3000)
+}
+
+export function setReadingProgress(
   documentId: string,
   globalPageIndex: number,
   chapterIndex?: number,
-): Promise<void> {
+): void {
   saveLocal(documentId, globalPageIndex)
   if (chapterIndex !== undefined) {
-    saveReadingProgress(documentId, chapterIndex).catch(() => {})
+    saveProgressToDB(documentId, chapterIndex)
   }
 }

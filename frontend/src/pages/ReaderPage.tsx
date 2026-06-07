@@ -46,6 +46,7 @@ export default function ReaderPage() {
   const viewportRef = useRef<HTMLDivElement>(null);
   const chapterMenuRef = useRef<HTMLDivElement>(null);
   const restoreDoneRef = useRef(false);
+  const restoreCompletedRef = useRef(false);
 
   const chapterContents = useQueries({
     queries: (chapters ?? []).map((ch) => ({
@@ -226,12 +227,14 @@ export default function ReaderPage() {
       if (range && range.start > 0) {
         setCurrentPage(range.start);
       }
+      requestAnimationFrame(() => { restoreCompletedRef.current = true; });
       return;
     }
 
     const saved = getReadingProgress(id!);
     if (saved !== null) {
       setCurrentPage(Math.min(saved, bookPagination.pages.length - 1));
+      requestAnimationFrame(() => { restoreCompletedRef.current = true; });
       return;
     }
 
@@ -240,12 +243,13 @@ export default function ReaderPage() {
         if (savedChapterIndex !== null) {
           const range =
             bookPagination.chapterPageRanges.get(savedChapterIndex);
-          if (range && range.start > 0) {
+          if (range) {
             setCurrentPage(range.start);
           }
         }
+        requestAnimationFrame(() => { restoreCompletedRef.current = true; });
       })
-      .catch(() => {});
+      .catch(() => { restoreCompletedRef.current = true; });
   }, [id, bookPagination, chapterIndexParam]);
 
   useEffect(() => {
@@ -256,7 +260,7 @@ export default function ReaderPage() {
   }, [currentPage, bookPagination, maxPage]);
 
   useEffect(() => {
-    if (!id || !restoreDoneRef.current) return;
+    if (!id || !restoreCompletedRef.current) return;
     const chapterIndex = bookPagination?.pages[currentPage]?.chapterIndex;
     if (chapterIndex !== undefined) {
       setReadingProgress(id, currentPage, chapterIndex);
