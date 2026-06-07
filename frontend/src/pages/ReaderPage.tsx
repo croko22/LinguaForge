@@ -13,7 +13,6 @@ import { useChapters, useDocument } from "../hooks/useReader";
 import { useReaderSettings } from "../store/readerSettings";
 import {
   getReadingProgress,
-  getReadingProgressFromDB,
   setReadingProgress,
 } from "../hooks/useReadingProgress";
 import { fetchChapterContent } from "../api/documents";
@@ -39,15 +38,19 @@ export default function ReaderPage() {
   const [selectedWord, setSelectedWord] = useState<string | null>(null);
   const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null);
   const [clickedWords, setClickedWords] = useState<string[]>([]);
-  const [currentPage, setCurrentPage] = useState(0);
+  const [currentPage, setCurrentPage] = useState(() => {
+    if (id) {
+      const saved = getReadingProgress(id);
+      if (saved !== null) return saved;
+    }
+    return 0;
+  });
   const [viewportHeight, setViewportHeight] = useState(0);
   const [viewportWidth, setViewportWidth] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
   const viewportRef = useRef<HTMLDivElement>(null);
   const chapterMenuRef = useRef<HTMLDivElement>(null);
-  const restoreDoneRef = useRef(false);
-  const [restoreCompleted, setRestoreCompleted] = useState(false);
-  const prevTotalPagesRef = useRef(0);
+  const chapterJumpDoneRef = useRef(false);
 
   const chapterContents = useQueries({
     queries: (chapters ?? []).map((ch) => ({
@@ -217,73 +220,32 @@ export default function ReaderPage() {
     [id, bookPagination],
   );
 
-useEffect(() => {
-    if (!bookPagination || restoreDoneRef.current) return;
-    restoreDoneRef.current = true;
-
-    if (chapterIndexParam) {
-      const range = bookPagination.chapterPageRanges.get(
-        parseInt(chapterIndexParam, 10),
-      );
-      if (range && range.start > 0) {
-        setCurrentPage(range.start);
-      }
-      setRestoreCompleted(true);
-      return;
-    }
-
-    const saved = getReadingProgress(id!);
-    if (saved !== null) {
-      setCurrentPage(Math.min(saved, bookPagination.pages.length - 1));
-      setRestoreCompleted(true);
-      return;
-    }
-
-    getReadingProgressFromDB(id!)
-      .then((savedChapterIndex) => {
-        if (savedChapterIndex !== null) {
-          const range =
-            bookPagination.chapterPageRanges.get(savedChapterIndex);
-          if (range) {
-            setCurrentPage(range.start);
-          }
-        }
-        setRestoreCompleted(true);
-      })
-      .catch(() => { setRestoreCompleted(true); });
-  }, [id, bookPagination, chapterIndexParam]);
-
-  // When pagination recalculates (resize), re-apply saved position to new page count
+// Jump to chapter from URL param (one-time)
   useEffect(() => {
-    if (!bookPagination || !restoreCompleted) return;
-    const totalPages = bookPagination.pages.length;
-    if (prevTotalPagesRef.current === 0) {
-      prevTotalPagesRef.current = totalPages;
-      return;
+    if (!chapterIndexParam || !bookPagination || chapterJumpDoneRef.current) return;
+    chapterJumpDoneRef.current = true;
+    const range = bookPagination.chapterPageRanges.get(parseInt(chapterIndexParam, 10));
+    if (range) {
+      setCurrentPage(range.start);
     }
-    if (prevTotalPagesRef.current !== totalPages) {
-      const saved = getReadingProgress(id!);
-      if (saved !== null) {
-        setCurrentPage(Math.min(saved, totalPages - 1));
-      }
-    }
-    prevTotalPagesRef.current = totalPages;
-  }, [bookPagination, id, restoreCompleted]);
+  }, [chapterIndexParam, bookPagination]);
 
+  // Clamp page when pagination changes (resize, content load)
   useEffect(() => {
     if (!bookPagination) return;
-    if (currentPage > maxPage) {
-      setCurrentPage(maxPage);
+    if (currentPage >= bookPagination.pages.length) {
+      setCurrentPage(Math.max(0, bookPagination.pages.length - 1));
     }
-  }, [currentPage, bookPagination, maxPage]);
+  }, [bookPagination]);
 
+  // Save progress on every page change (localStorage immediate, DB debounced)
   useEffect(() => {
-    if (!id || !restoreCompleted) return;
-    const chapterIndex = bookPagination?.pages[currentPage]?.chapterIndex;
+    if (!id || !bookPagination) return;
+    const chapterIndex = bookPagination.pages[currentPage]?.chapterIndex;
     if (chapterIndex !== undefined) {
       setReadingProgress(id, currentPage, chapterIndex);
     }
-  }, [id, currentPage, bookPagination, restoreCompleted]);
+  }, [id, currentPage, bookPagination]);
 
   const allContentFailed =
     chapters &&
