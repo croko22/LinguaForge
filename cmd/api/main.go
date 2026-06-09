@@ -22,6 +22,7 @@ import (
 	"github.com/croko/language-app/internal/service"
 	"github.com/croko/language-app/internal/storage"
 	"github.com/croko/language-app/internal/translator"
+	"github.com/croko/language-app/internal/tts"
 	"github.com/croko/language-app/internal/worker"
 )
 
@@ -75,6 +76,13 @@ func main() {
 	transHandler := handler.NewTranslateHandler(translator.NewCachedTranslator(transProvider))
 	settingsHandler := handler.NewSettingsHandler(transProvider)
 
+	ttsService, err := tts.NewService(cfg.TTSDir, "en")
+	if err != nil {
+		slog.Error("failed to create tts service", "error", err)
+		os.Exit(1)
+	}
+	ttsHandler := handler.NewTTSHandler(ttsService)
+
 	// 5. Setup chi router
 	r := chi.NewRouter()
 	r.Use(middleware.Logger)
@@ -85,6 +93,7 @@ func main() {
 	r.Post("/api/translate", transHandler.Translate)
 	r.Get("/api/settings", settingsHandler.GetSettings)
 	r.Put("/api/settings", settingsHandler.UpdateSettings)
+	r.Get("/api/tts", ttsHandler.ServeHTTP)
 	r.Post("/api/words", wordHandler.SaveWord)
 	r.Get("/api/words", wordHandler.ListWords)
 	r.Delete("/api/words/{id}", wordHandler.DeleteWord)

@@ -10,6 +10,7 @@ type Config struct {
 	DatabasePath  string `env:"DB_PATH" envDefault:"./language-app.db"`
 	UploadDir     string `env:"UPLOAD_DIR" envDefault:"./uploads"`
 	MaxUploadSize int64  `env:"MAX_UPLOAD_SIZE" envDefault:"52428800"` // 50 MB in bytes
+	TTSDir        string `env:"TTS_DIR" envDefault:"./uploads/tts-cache"`
 }
 
 // Load reads configuration from environment variables.

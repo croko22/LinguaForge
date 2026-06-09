@@ -1,13 +1,15 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { API_BASE } from '../api/config'
+import { playWordAudio } from '../api/tts'
 
 interface WordPopoverProps {
   word: string | null
   position: { x: number; y: number }
   onClose: () => void
+  language?: string
 }
 
-export default function WordPopover({ word, position, onClose }: WordPopoverProps) {
+export default function WordPopover({ word, position, onClose, language }: WordPopoverProps) {
   const ref = useRef<HTMLDivElement>(null)
   const [result, setResult] = useState<{
     word: string | null
@@ -27,7 +29,7 @@ export default function WordPopover({ word, position, onClose }: WordPopoverProp
     fetch(`${API_BASE}/translate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ word, source_lang: 'en', target_lang: 'es' }),
+      body: JSON.stringify({ word, source_lang: language ?? 'en', target_lang: 'es' }),
     })
       .then((res) => {
         if (!res.ok) throw new Error('HTTP ' + res.status)
@@ -47,7 +49,7 @@ export default function WordPopover({ word, position, onClose }: WordPopoverProp
     return () => {
       cancelled = true
     }
-  }, [word])
+  }, [word, language])
 
   useEffect(() => {
     if (!word) return
@@ -70,10 +72,8 @@ export default function WordPopover({ word, position, onClose }: WordPopoverProp
 
   const handleListen = useCallback(() => {
     if (!word) return
-    const utterance = new SpeechSynthesisUtterance(word)
-    utterance.lang = 'en'
-    speechSynthesis.speak(utterance)
-  }, [word])
+    playWordAudio(word, language ?? 'en')
+  }, [word, language])
 
   if (!word) return null
 

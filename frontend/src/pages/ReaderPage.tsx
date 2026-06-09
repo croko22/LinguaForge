@@ -492,6 +492,7 @@ const isMobile = useMediaQuery("(max-width: 767px)");
               setSelectedWord(null);
               setPopoverPos(null);
             }}
+            language={book?.language}
           />
         )}
       </div>
