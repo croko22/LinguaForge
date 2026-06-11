@@ -23,3 +23,15 @@ func DefaultSettings() *Settings {
 		},
 	}
 }
+
+// WithLibreAsDefault returns settings with libre as the active provider.
+// Used when a local LibreTranslate endpoint is configured (e.g. Docker).
+func WithLibreAsDefault(endpoint, apiKey string) *Settings {
+	return &Settings{
+		ActiveProvider: "libre",
+		Providers: []ProviderConfig{
+			{Name: "mock", Endpoint: "", APIKey: ""},
+			{Name: "libre", Endpoint: endpoint, APIKey: apiKey},
+		},
+	}
+}

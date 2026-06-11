@@ -69,7 +69,18 @@ func main() {
 	reviewRepo := repository.NewReviewRepository(db)
 	reviewService := service.NewReviewService(reviewRepo, wordRepo)
 	reviewHandler := handler.NewReviewHandler(reviewService)
+	// Use LibreTranslate as default when a local endpoint is configured (Docker)
 	transSettings := translator.DefaultSettings()
+	for i := range transSettings.Providers {
+		if transSettings.Providers[i].Name == "libre" {
+			transSettings.Providers[i].Endpoint = cfg.LTEndpoint
+			transSettings.Providers[i].APIKey = cfg.LTApiKey
+		}
+	}
+	// If endpoint is not the public default, auto-activate libre
+	if cfg.LTEndpoint != "https://libretranslate.com" {
+		transSettings.ActiveProvider = "libre"
+	}
 	transProvider := translator.NewProvider(transSettings)
 	wordService := service.NewWordService(wordRepo, reviewRepo, transProvider)
 	wordHandler := handler.NewWordHandler(wordService)

@@ -1,0 +1,5 @@
+frontend/node_modules
+linguaforge-server
+*.db
+uploads/
+.git/

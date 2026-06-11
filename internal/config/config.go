@@ -11,6 +11,8 @@ type Config struct {
 	UploadDir     string `env:"UPLOAD_DIR" envDefault:"./uploads"`
 	MaxUploadSize int64  `env:"MAX_UPLOAD_SIZE" envDefault:"52428800"` // 50 MB in bytes
 	TTSDir        string `env:"TTS_DIR" envDefault:"./uploads/tts-cache"`
+	LTEndpoint    string `env:"LIBRETRANSLATE_ENDPOINT" envDefault:"https://libretranslate.com"`
+	LTApiKey      string `env:"LIBRETRANSLATE_API_KEY" envDefault:""`
 }
 
 // Load reads configuration from environment variables.
