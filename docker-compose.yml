@@ -1,28 +1,6 @@
 version: "3.9"
 
 services:
-  # ── LinguaForge API ──────────────────────────────────────────────
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "${API_PORT:-8080}:8080"
-    environment:
-      PORT: "8080"
-      DB_PATH: /data/language-app.db
-      UPLOAD_DIR: /data/uploads
-      TTS_DIR: /data/uploads/tts-cache
-      MAX_UPLOAD_SIZE: "52428800"
-      LIBRETRANSLATE_ENDPOINT: http://libretranslate:5000
-    volumes:
-      - linguaforge-data:/data
-    depends_on:
-      libretranslate:
-        condition: service_healthy
-    restart: unless-stopped
-
-  # ── LibreTranslate ──────────────────────────────────────────────
   libretranslate:
     image: libretranslate/libretranslate:latest
     ports:
@@ -43,5 +21,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  linguaforge-data:
   libretranslate-models:
