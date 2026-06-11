@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 )
@@ -75,15 +76,25 @@ func (s *Service) Synthesize(ctx context.Context, word, language string) ([]byte
 	}
 	defer func() { <-s.sem }()
 
-	client, err := newEdgeClient()
+	// Try twice — edge-tts WebSocket can flake
+	var data []byte
+	var err error
+	for attempt := range 2 {
+		var client *edgeClient
+		client, err = newEdgeClient()
+		if err != nil {
+			slog.Warn("tts: edge connect failed", "attempt", attempt+1, "error", err)
+			continue
+		}
+		data, err = client.synthesize(word, voice)
+		client.Close()
+		if err == nil {
+			break
+		}
+		slog.Warn("tts: edge synthesize failed", "attempt", attempt+1, "word", word, "error", err)
+	}
 	if err != nil {
 		return nil, fmt.Errorf("edge-tts: %w", err)
-	}
-	defer client.Close()
-
-	data, err := client.synthesize(word, voice)
-	if err != nil {
-		return nil, fmt.Errorf("synthesize: %w", err)
 	}
 
 	if err := os.WriteFile(cachePath, data, 0644); err != nil {

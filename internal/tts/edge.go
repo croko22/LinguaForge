@@ -13,6 +13,10 @@ import (
 
 const edgeWSS = "wss://speech.platform.bing.com/consumer/speech/synthesize/readaloud/edge/v1"
 
+// TrustedClientToken — this token changes periodically. If TTS stops working,
+// check https://github.com/rany2/edge-tts for the latest token.
+const trustedClientToken = "6A5AA1D4EAFF4E9FB37E23D68491D6F4"
+
 var defaultDialer = &websocket.Dialer{
 	HandshakeTimeout: 10 * time.Second,
 }
@@ -23,11 +27,11 @@ type edgeClient struct {
 
 func newEdgeClient() (*edgeClient, error) {
 	connID := uuid.New().String()
-	u := fmt.Sprintf("%s?TrustedClientToken=6A5AA1D4EAFF4E9FB37E23D68491D6F4&ConnectionId=%s", edgeWSS, connID)
+	u := fmt.Sprintf("%s?TrustedClientToken=%s&ConnectionId=%s", edgeWSS, trustedClientToken, connID)
 
 	header := http.Header{
 		"Origin":     {"chrome-extension://jdiccldimpdaibmpdkjnbckngbcgghdo"},
-		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"},
+		"User-Agent": {"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 Edg/120.0.0.0"},
 	}
 
 	conn, _, err := defaultDialer.Dial(u, header)

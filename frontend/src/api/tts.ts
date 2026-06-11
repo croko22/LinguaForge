@@ -115,7 +115,9 @@ async function speakViaAPI(word: string, language: string): Promise<boolean> {
 }
 
 export async function playWordAudio(word: string, language: string): Promise<void> {
+  // Always try browser SpeechSynthesis first — works offline, no network
   const ok = await speakViaBrowser(word, language)
   if (ok) return
+  // Only hit the API if browser TTS wasn't available or failed silently
   await speakViaAPI(word, language)
 }
