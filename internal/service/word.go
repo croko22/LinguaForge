@@ -26,17 +26,33 @@ func NewWordService(repo repository.WordRepository, reviewRepo repository.Review
 }
 
 func (s *WordService) SaveWord(ctx context.Context, documentID, word, translation, sourceLang, targetLang string) (*model.SavedWord, error) {
-	// If no translation provided, call the translator
+	// If no translation provided, call the translator with retries
 	if translation == "" {
-		resp, err := s.translator.Translate(ctx, translator.TranslateRequest{
-			Word:       word,
-			SourceLang: sourceLang,
-			TargetLang: targetLang,
-		})
-		if err == nil {
-			translation = resp.Translation
+		const maxRetries = 3
+		var lastErr error
+		for attempt := 0; attempt < maxRetries; attempt++ {
+			if attempt > 0 {
+				select {
+				case <-ctx.Done():
+					return nil, ctx.Err()
+				case <-time.After(time.Duration(attempt) * time.Second):
+				}
+			}
+			resp, err := s.translator.Translate(ctx, translator.TranslateRequest{
+				Word:       word,
+				SourceLang: sourceLang,
+				TargetLang: targetLang,
+			})
+			if err == nil {
+				translation = resp.Translation
+				lastErr = nil
+				break
+			}
+			lastErr = err
 		}
-		// If translation fails, continue with empty — don't block the save
+		if lastErr != nil {
+			return nil, fmt.Errorf("translate word %q after %d attempts: %w", word, maxRetries, lastErr)
+		}
 	}
 
 	now := time.Now().UTC()

@@ -38,10 +38,22 @@ func VoiceForLanguage(lang string) string {
 	return "en-US-AriaNeural"
 }
 
+// synthesizer abstracts the TTS client for testability.
+type synthesizer interface {
+	synthesize(text, voice string) ([]byte, error)
+	Close() error
+}
+
 type Service struct {
 	cacheDir    string
 	defaultLang string
 	sem         chan struct{}
+	newClient   func() (synthesizer, error)
+}
+
+// defaultNewClient is the production factory that creates a real edge-tts client.
+var defaultNewClient = func() (synthesizer, error) {
+	return newEdgeClient()
 }
 
 func NewService(cacheDir, defaultLang string) (*Service, error) {
@@ -53,6 +65,7 @@ func NewService(cacheDir, defaultLang string) (*Service, error) {
 		cacheDir:    cacheDir,
 		defaultLang: defaultLang,
 		sem:         make(chan struct{}, 4),
+		newClient:   defaultNewClient,
 	}, nil
 }
 
@@ -80,8 +93,8 @@ func (s *Service) Synthesize(ctx context.Context, word, language string) ([]byte
 	var data []byte
 	var err error
 	for attempt := range 2 {
-		var client *edgeClient
-		client, err = newEdgeClient()
+		var client synthesizer
+		client, err = s.newClient()
 		if err != nil {
 			slog.Warn("tts: edge connect failed", "attempt", attempt+1, "error", err)
 			continue

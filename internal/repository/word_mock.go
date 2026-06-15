@@ -34,3 +34,7 @@ func (m *WordRepoMock) ListAll(ctx context.Context) ([]*model.SavedWord, error) 
 func (m *WordRepoMock) Delete(ctx context.Context, id string) error {
 	return nil
 }
+
+func (m *WordRepoMock) DeleteByDocumentID(ctx context.Context, documentID string) error {
+	return nil
+}

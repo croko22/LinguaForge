@@ -12,6 +12,7 @@ import { useParams } from "react-router-dom";
 import { useQueries } from "@tanstack/react-query";
 import { useChapters, useDocument } from "../hooks/useReader";
 import { useReaderSettings } from "../store/readerSettings";
+import { useLanguageSettings } from "../store/languageSettings";
 import { useReadingProgress } from "../hooks/useReadingProgress";
 import { fetchChapterContent } from "../api/documents";
 import TextDisplay from "../components/TextDisplay";
@@ -45,6 +46,7 @@ export default function ReaderPage() {
   const [showChapters, setShowChapters] = useState(false);
   const [showSidebar, setShowSidebar] = useState(false);
   const { theme, fontSize, lineHeight } = useReaderSettings();
+  const { sourceLang, targetLang } = useLanguageSettings();
 
   const { data: book, isError: documentError } = useDocument(id ?? "");
   const { data: chapters, isError: chaptersError } = useChapters(id ?? "");
@@ -184,9 +186,9 @@ const isMobile = useMediaQuery("(max-width: 767px)");
         prev.includes(clean) ? prev : [...prev, clean],
       );
       setShowSidebar(true);
-      saveWord(clean, "", id ?? "");
+      saveWord({ word: clean, translation: "", documentId: id ?? "", sourceLang, targetLang });
     },
-    [id],
+    [id, sourceLang, targetLang],
   );
 
   const handlePageTurnClick = useCallback(

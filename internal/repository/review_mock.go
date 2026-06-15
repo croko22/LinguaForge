@@ -77,3 +77,7 @@ func (m *ReviewRepoMock) CountDue(_ context.Context) (int, error) {
 	// Return number of cards (tests seed the expected count)
 	return len(m.cards), nil
 }
+
+func (m *ReviewRepoMock) DeleteByDocumentID(_ context.Context, _ string) error {
+	return nil
+}

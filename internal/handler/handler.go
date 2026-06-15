@@ -12,19 +12,39 @@ import (
 	"github.com/go-chi/chi/v5"
 
 	"github.com/croko/language-app/internal/model"
+	"github.com/croko/language-app/internal/repository"
 	"github.com/croko/language-app/internal/service"
 )
 
 const maxMemoryBuffer = 10 * 1024 * 1024 // 10 MB for in-memory multipart parsing
 
 // DocumentHandler handles HTTP requests for document operations.
+// Deep operations (upload, process, delete) go through DocumentIngester.
+// Cover and progress operations go through DocumentReader.
+// Trivial reads go directly to repositories.
 type DocumentHandler struct {
-	svc *service.DocumentService
+	ingester *service.DocumentIngester
+	reader   *service.DocumentReader
+	docRepo  repository.DocumentRepository
+	chRepo   repository.ChapterRepository
+	progRepo repository.ReadingProgressRepository
 }
 
 // NewDocumentHandler creates a new DocumentHandler.
-func NewDocumentHandler(svc *service.DocumentService) *DocumentHandler {
-	return &DocumentHandler{svc: svc}
+func NewDocumentHandler(
+	ingester *service.DocumentIngester,
+	reader *service.DocumentReader,
+	docRepo repository.DocumentRepository,
+	chRepo repository.ChapterRepository,
+	progRepo repository.ReadingProgressRepository,
+) *DocumentHandler {
+	return &DocumentHandler{
+		ingester: ingester,
+		reader:   reader,
+		docRepo:  docRepo,
+		chRepo:   chRepo,
+		progRepo: progRepo,
+	}
 }
 
 // RegisterRoutes registers all document API routes on the given router.
@@ -57,7 +77,7 @@ func (h *DocumentHandler) UploadDocument(w http.ResponseWriter, r *http.Request)
 	}
 	defer file.Close()
 
-	doc, err := h.svc.UploadDocument(r.Context(), header.Filename, header.Size, file)
+	doc, err := h.ingester.UploadDocument(r.Context(), header.Filename, header.Size, file)
 	if err != nil {
 		switch {
 		case errors.Is(err, service.ErrInvalidFileType):
@@ -74,8 +94,9 @@ func (h *DocumentHandler) UploadDocument(w http.ResponseWriter, r *http.Request)
 }
 
 // ListDocuments handles GET /api/documents — lists all documents.
+// Direct repo call: trivial read, no domain logic.
 func (h *DocumentHandler) ListDocuments(w http.ResponseWriter, r *http.Request) {
-	docs, err := h.svc.ListDocuments(r.Context())
+	docs, err := h.docRepo.List(r.Context())
 	if err != nil {
 		respondError(w, http.StatusInternalServerError, "internal server error")
 		return
@@ -89,10 +110,11 @@ func (h *DocumentHandler) ListDocuments(w http.ResponseWriter, r *http.Request) 
 }
 
 // GetDocument handles GET /api/documents/{id} — gets a single document.
+// Direct repo call: trivial read, no domain logic.
 func (h *DocumentHandler) GetDocument(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	doc, err := h.svc.GetDocument(r.Context(), id)
+	doc, err := h.docRepo.GetByID(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, http.StatusNotFound, "document not found")
@@ -113,7 +135,7 @@ func (h *DocumentHandler) DeleteDocument(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	if err := h.svc.DeleteDocument(r.Context(), id); err != nil {
+	if err := h.ingester.DeleteDocument(r.Context(), id); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, http.StatusNotFound, "document not found")
 			return
@@ -126,10 +148,11 @@ func (h *DocumentHandler) DeleteDocument(w http.ResponseWriter, r *http.Request)
 }
 
 // ListChapters handles GET /api/documents/{id}/chapters — lists chapters (summary only).
+// Direct repo call: trivial read, no domain logic.
 func (h *DocumentHandler) ListChapters(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	chapters, err := h.svc.GetChapters(r.Context(), id)
+	chapters, err := h.chRepo.ListByDocumentID(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, http.StatusNotFound, "document not found")
@@ -147,6 +170,7 @@ func (h *DocumentHandler) ListChapters(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetChapterContent handles GET /api/documents/{id}/chapters/{index} — gets full chapter content.
+// Direct repo call: trivial read, no domain logic.
 func (h *DocumentHandler) GetChapterContent(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	indexStr := chi.URLParam(r, "index")
@@ -157,7 +181,7 @@ func (h *DocumentHandler) GetChapterContent(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	chapter, err := h.svc.GetChapterContent(r.Context(), id, index)
+	chapter, err := h.chRepo.GetByDocumentAndIndex(r.Context(), id, index)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, http.StatusNotFound, "chapter not found")
@@ -171,40 +195,34 @@ func (h *DocumentHandler) GetChapterContent(w http.ResponseWriter, r *http.Reque
 }
 
 // ServeCover handles GET /api/documents/{id}/cover — serves the cover image.
+// Deep operation: resolves document → cover path → opens file. Absorbed into DocumentReader.
 func (h *DocumentHandler) ServeCover(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	doc, err := h.svc.GetDocument(r.Context(), id)
+	result, err := h.reader.ServeCover(r.Context(), id)
 	if err != nil {
+		if errors.Is(err, service.ErrNoCover) {
+			respondError(w, http.StatusNotFound, "no cover available")
+			return
+		}
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, http.StatusNotFound, "document not found")
 			return
 		}
-		respondError(w, http.StatusInternalServerError, "internal server error")
-		return
-	}
-
-	if doc.CoverPath == "" {
-		respondError(w, http.StatusNotFound, "no cover available")
-		return
-	}
-
-	reader, err := h.svc.GetCover(r.Context(), doc.CoverPath)
-	if err != nil {
 		respondError(w, http.StatusNotFound, "cover not found")
 		return
 	}
-	defer reader.Close()
+	defer result.Reader.Close()
 
 	buf := make([]byte, 512)
-	n, _ := reader.Read(buf)
+	n, _ := result.Reader.Read(buf)
 	contentType := http.DetectContentType(buf[:n])
 
 	w.Header().Set("Content-Type", contentType)
 	w.Header().Set("Cache-Control", "public, max-age=86400")
 	w.WriteHeader(http.StatusOK)
 	w.Write(buf[:n])
-	io.Copy(w, reader)
+	io.Copy(w, result.Reader)
 }
 
 // ── Response helpers ────────────────────────────────────────────────────────────
@@ -223,6 +241,7 @@ type saveProgressRequest struct {
 }
 
 // SaveProgress handles PUT /api/documents/{id}/progress.
+// Deep operation: calculates percentage from chapter count. Delegated to DocumentReader.
 func (h *DocumentHandler) SaveProgress(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
@@ -237,7 +256,7 @@ func (h *DocumentHandler) SaveProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	progress, err := h.svc.SaveProgress(r.Context(), id, req.ChapterIndex)
+	progress, err := h.reader.SaveProgress(r.Context(), id, req.ChapterIndex)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondError(w, http.StatusNotFound, "document not found")
@@ -251,10 +270,11 @@ func (h *DocumentHandler) SaveProgress(w http.ResponseWriter, r *http.Request) {
 }
 
 // GetProgress handles GET /api/documents/{id}/progress.
+// Direct repo call: trivial read, no domain logic.
 func (h *DocumentHandler) GetProgress(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
-	progress, err := h.svc.GetProgress(r.Context(), id)
+	progress, err := h.progRepo.GetByDocumentID(id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondJSON(w, http.StatusOK, map[string]any{

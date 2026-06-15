@@ -233,6 +233,8 @@ func setupIntegrationTest(t *testing.T) (*testDeps, func()) {
 	docRepo := repository.NewDocumentRepository(db)
 	chRepo := repository.NewChapterRepository(db)
 	progRepo := repository.NewReadingProgressRepository(db)
+	wordRepo := repository.NewWordRepository(db)
+	reviewRepo := repository.NewReviewRepository(db)
 
 	fileStorage, err := storage.NewLocalFileStorage(tempDir)
 	if err != nil {
@@ -242,11 +244,12 @@ func setupIntegrationTest(t *testing.T) (*testDeps, func()) {
 	}
 
 	epubParser := parser.NewEpubParser()
-	docService := service.NewDocumentService(docRepo, chRepo, progRepo, fileStorage, []parser.Parser{epubParser})
-	pool := worker.New(2, 10, docService.ProcessBook)
+	docIngester := service.NewDocumentIngester(docRepo, chRepo, progRepo, wordRepo, reviewRepo, fileStorage, []parser.Parser{epubParser})
+	docReader := service.NewDocumentReader(docRepo, chRepo, progRepo, fileStorage)
+	pool := worker.New(2, 10, docIngester.ProcessBook)
 	pool.Start()
-	docService.SetEnqueueFunc(pool.Enqueue)
-	docHandler := handler.NewDocumentHandler(docService)
+	docIngester.SetEnqueueFunc(pool.Enqueue)
+	docHandler := handler.NewDocumentHandler(docIngester, docReader, docRepo, chRepo, progRepo)
 
 	// ── Chi router ─────────────────────────────────────────────────────────
 	r := chi.NewRouter()

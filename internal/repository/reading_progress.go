@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"time"
@@ -12,7 +13,7 @@ import (
 type ReadingProgressRepository interface {
 	Upsert(documentID string, chapterIndex int, percentage float64) (*model.ReadingProgress, error)
 	GetByDocumentID(documentID string) (*model.ReadingProgress, error)
-	DeleteByDocumentID(documentID string) error
+	DeleteByDocumentID(ctx context.Context, documentID string) error
 }
 
 type readingProgressRepo struct {
@@ -73,8 +74,8 @@ func (r *readingProgressRepo) GetByDocumentID(documentID string) (*model.Reading
 	return p, nil
 }
 
-func (r *readingProgressRepo) DeleteByDocumentID(documentID string) error {
-	_, err := r.db.Exec("DELETE FROM reading_progress WHERE document_id = ?", documentID)
+func (r *readingProgressRepo) DeleteByDocumentID(ctx context.Context, documentID string) error {
+	_, err := r.db.ExecContext(ctx, "DELETE FROM reading_progress WHERE document_id = ?", documentID)
 	if err != nil {
 		return fmt.Errorf("delete reading progress: %w", err)
 	}

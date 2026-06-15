@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { API_BASE } from '../api/config'
 import { playWordAudio } from '../api/tts'
+import { useLanguageSettings } from '../store/languageSettings'
 
 interface WordPopoverProps {
   word: string | null
@@ -10,6 +11,7 @@ interface WordPopoverProps {
 }
 
 export default function WordPopover({ word, position, onClose, language }: WordPopoverProps) {
+  const { sourceLang, targetLang } = useLanguageSettings()
   const ref = useRef<HTMLDivElement>(null)
   const [result, setResult] = useState<{
     word: string | null
@@ -29,7 +31,7 @@ export default function WordPopover({ word, position, onClose, language }: WordP
     fetch(`${API_BASE}/translate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ word, source_lang: language ?? 'en', target_lang: 'es' }),
+      body: JSON.stringify({ word, source_lang: language ?? sourceLang, target_lang: targetLang }),
     })
       .then((res) => {
         if (!res.ok) throw new Error('HTTP ' + res.status)
@@ -49,7 +51,7 @@ export default function WordPopover({ word, position, onClose, language }: WordP
     return () => {
       cancelled = true
     }
-  }, [word, language])
+  }, [word, language, sourceLang, targetLang])
 
   useEffect(() => {
     if (!word) return
@@ -72,8 +74,8 @@ export default function WordPopover({ word, position, onClose, language }: WordP
 
   const handleListen = useCallback(() => {
     if (!word) return
-    playWordAudio(word, language ?? 'en')
-  }, [word, language])
+    playWordAudio(word, language ?? sourceLang)
+  }, [word, language, sourceLang])
 
   if (!word) return null
 

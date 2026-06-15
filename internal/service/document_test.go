@@ -101,7 +101,7 @@ func defaultParsers() []parser.Parser {
 	}
 }
 
-func newTestService(t *testing.T, opts ...testOpt) (*DocumentService, *sql.DB, func()) {
+func newTestService(t *testing.T, opts ...testOpt) (*DocumentIngester, *sql.DB, func()) {
 	t.Helper()
 
 	cfg := &testConfig{
@@ -135,6 +135,8 @@ func newTestService(t *testing.T, opts ...testOpt) (*DocumentService, *sql.DB, f
 	docRepo := repository.NewDocumentRepository(db)
 	chRepo := repository.NewChapterRepository(db)
 	progRepo := repository.NewReadingProgressRepository(db)
+	wordRepo := repository.NewWordRepository(db)
+	reviewRepo := repository.NewReviewRepository(db)
 
 	var fileStore storage.FileStorage
 	if cfg.storage != nil {
@@ -149,7 +151,7 @@ func newTestService(t *testing.T, opts ...testOpt) (*DocumentService, *sql.DB, f
 		fileStore = fs
 	}
 
-	svc := NewDocumentService(docRepo, chRepo, progRepo, fileStore, cfg.parsers)
+	svc := NewDocumentIngester(docRepo, chRepo, progRepo, wordRepo, reviewRepo, fileStore, cfg.parsers)
 	if cfg.enqueue != nil {
 		svc.SetEnqueueFunc(cfg.enqueue)
 	}
@@ -639,5 +641,120 @@ func TestProcessBookWithoutCover(t *testing.T) {
 	}
 	if coverPath != "" {
 		t.Fatalf("expected empty cover_path, got %q", coverPath)
+	}
+}
+
+// ── Tests: DeleteDocument (cascade) ──────────────────────────────────────────────
+
+func TestDeleteDocument_CascadesToAllRelatedData(t *testing.T) {
+	svc, db, cleanup := newTestService(t)
+	defer cleanup()
+
+	ctx := context.Background()
+	docID := uuid.New().String()
+	now := time.Now().UTC()
+
+	// Insert a document
+	if _, err := db.Exec(`
+		INSERT INTO documents (id, title, filename, file_type, file_size, storage_path, status, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		docID, "test.epub", "test.epub", "epub", int64(100), "placeholder", model.StatusReady, now, now,
+	); err != nil {
+		t.Fatalf("failed to insert document: %v", err)
+	}
+
+	// Insert chapters
+	chapterID := uuid.New().String()
+	if _, err := db.Exec(`
+		INSERT INTO document_chapters (id, document_id, chapter_index, chapter_title, content, token_count, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		chapterID, docID, 0, "Chapter 1", "Some content", 2, now,
+	); err != nil {
+		t.Fatalf("failed to insert chapter: %v", err)
+	}
+
+	// Insert a saved word
+	wordID := uuid.New().String()
+	if _, err := db.Exec(`
+		INSERT INTO saved_words (id, document_id, word, translation, source_lang, target_lang, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		wordID, docID, "hello", "hola", "en", "es", now,
+	); err != nil {
+		t.Fatalf("failed to insert word: %v", err)
+	}
+
+	// Insert a review card for the word
+	reviewID := uuid.New().String()
+	if _, err := db.Exec(`
+		INSERT INTO word_reviews (id, word_id, status, ease_factor, interval_days, repetitions, lapses, next_review, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		reviewID, wordID, "new", 2.5, 0, 0, 0, now, now, now,
+	); err != nil {
+		t.Fatalf("failed to insert review: %v", err)
+	}
+
+	// Insert reading progress
+	if _, err := db.Exec(`
+		INSERT INTO reading_progress (id, document_id, chapter_index, percentage, updated_at)
+		VALUES (?, ?, ?, ?, ?)`,
+		uuid.New().String(), docID, 0, 50.0, now,
+	); err != nil {
+		t.Fatalf("failed to insert reading progress: %v", err)
+	}
+
+	// Verify data exists before delete
+	var count int
+	db.QueryRow("SELECT COUNT(*) FROM word_reviews WHERE word_id = ?", wordID).Scan(&count)
+	if count != 1 {
+		t.Fatalf("expected 1 review before delete, got %d", count)
+	}
+	db.QueryRow("SELECT COUNT(*) FROM saved_words WHERE document_id = ?", docID).Scan(&count)
+	if count != 1 {
+		t.Fatalf("expected 1 word before delete, got %d", count)
+	}
+	db.QueryRow("SELECT COUNT(*) FROM reading_progress WHERE document_id = ?", docID).Scan(&count)
+	if count != 1 {
+		t.Fatalf("expected 1 progress before delete, got %d", count)
+	}
+	db.QueryRow("SELECT COUNT(*) FROM document_chapters WHERE document_id = ?", docID).Scan(&count)
+	if count != 1 {
+		t.Fatalf("expected 1 chapter before delete, got %d", count)
+	}
+
+	// Delete the document via service
+	if err := svc.DeleteDocument(ctx, docID); err != nil {
+		t.Fatalf("DeleteDocument returned error: %v", err)
+	}
+
+	// Verify all related data is gone
+	db.QueryRow("SELECT COUNT(*) FROM word_reviews").Scan(&count)
+	if count != 0 {
+		t.Errorf("expected 0 reviews after delete, got %d", count)
+	}
+	db.QueryRow("SELECT COUNT(*) FROM saved_words").Scan(&count)
+	if count != 0 {
+		t.Errorf("expected 0 words after delete, got %d", count)
+	}
+	db.QueryRow("SELECT COUNT(*) FROM reading_progress").Scan(&count)
+	if count != 0 {
+		t.Errorf("expected 0 progress after delete, got %d", count)
+	}
+	db.QueryRow("SELECT COUNT(*) FROM document_chapters").Scan(&count)
+	if count != 0 {
+		t.Errorf("expected 0 chapters after delete, got %d", count)
+	}
+	db.QueryRow("SELECT COUNT(*) FROM documents").Scan(&count)
+	if count != 0 {
+		t.Errorf("expected 0 documents after delete, got %d", count)
+	}
+}
+
+func TestDeleteDocument_NotFound_ReturnsError(t *testing.T) {
+	svc, _, cleanup := newTestService(t)
+	defer cleanup()
+
+	err := svc.DeleteDocument(context.Background(), "nonexistent-id")
+	if err == nil {
+		t.Fatal("expected error for nonexistent document, got nil")
 	}
 }

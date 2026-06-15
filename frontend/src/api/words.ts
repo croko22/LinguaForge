@@ -10,7 +10,15 @@ export interface SavedWord {
   created_at: string
 }
 
-export async function saveWord(word: string, translation: string, documentId: string): Promise<SavedWord> {
+export interface SaveWordParams {
+  word: string
+  translation: string
+  documentId: string
+  sourceLang: string
+  targetLang: string
+}
+
+export async function saveWord({ word, translation, documentId, sourceLang, targetLang }: SaveWordParams): Promise<SavedWord> {
   const res = await fetch(`${API_BASE}/words`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -18,8 +26,8 @@ export async function saveWord(word: string, translation: string, documentId: st
       document_id: documentId,
       word,
       translation,
-      source_lang: 'en',
-      target_lang: 'es',
+      source_lang: sourceLang,
+      target_lang: targetLang,
     }),
   })
   if (!res.ok) throw new Error('Failed to save word')

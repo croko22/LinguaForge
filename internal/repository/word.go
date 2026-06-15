@@ -14,6 +14,7 @@ type WordRepository interface {
 	ListByDocument(ctx context.Context, documentID string) ([]*model.SavedWord, error)
 	ListAll(ctx context.Context) ([]*model.SavedWord, error)
 	Delete(ctx context.Context, id string) error
+	DeleteByDocumentID(ctx context.Context, documentID string) error
 }
 
 type wordRepo struct {
@@ -89,6 +90,15 @@ func (r *wordRepo) Delete(ctx context.Context, id string) error {
 	_, err := r.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("delete word: %w", err)
+	}
+	return nil
+}
+
+func (r *wordRepo) DeleteByDocumentID(ctx context.Context, documentID string) error {
+	query := `DELETE FROM saved_words WHERE document_id = ?`
+	_, err := r.db.ExecContext(ctx, query, documentID)
+	if err != nil {
+		return fmt.Errorf("delete saved words by document: %w", err)
 	}
 	return nil
 }

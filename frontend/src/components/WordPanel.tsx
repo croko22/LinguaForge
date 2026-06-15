@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { API_BASE } from '../api/config'
+import { useLanguageSettings } from '../store/languageSettings'
 
 interface WordPanelProps {
   words: string[]
@@ -7,18 +8,19 @@ interface WordPanelProps {
 }
 
 function WordItem({ word, count }: { word: string; count: number }) {
+  const { sourceLang, targetLang } = useLanguageSettings()
   const [translation, setTranslation] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`${API_BASE}/translate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ word, source_lang: 'en', target_lang: 'es' }),
+      body: JSON.stringify({ word, source_lang: sourceLang, target_lang: targetLang }),
     })
       .then((r) => r.json())
       .then((data) => setTranslation(data.translation))
       .catch(() => {})
-  }, [word])
+  }, [word, sourceLang, targetLang])
 
   return (
     <li className="group flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors cursor-default">

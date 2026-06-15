@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 type LibreClient struct {
@@ -19,7 +20,7 @@ func NewLibreTranslate(endpoint string, apiKey string) Translator {
 	return &LibreClient{
 		endpoint: endpoint,
 		apiKey:   apiKey,
-		client:   &http.Client{},
+		client:   &http.Client{Timeout: 30 * time.Second},
 	}
 }
 

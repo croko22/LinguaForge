@@ -24,6 +24,8 @@ type ReviewRepository interface {
 	UpdateReview(ctx context.Context, card *model.ReviewCard) error
 	// CountDue returns the number of review cards due for review.
 	CountDue(ctx context.Context) (int, error)
+	// DeleteByDocumentID deletes all review cards for words belonging to the given document.
+	DeleteByDocumentID(ctx context.Context, documentID string) error
 }
 
 type reviewRepo struct {
@@ -213,6 +215,17 @@ func (r *reviewRepo) CountDue(ctx context.Context) (int, error) {
 		return 0, fmt.Errorf("count due words: %w", err)
 	}
 	return count, nil
+}
+
+func (r *reviewRepo) DeleteByDocumentID(ctx context.Context, documentID string) error {
+	_, err := r.db.ExecContext(ctx,
+		"DELETE FROM word_reviews WHERE word_id IN (SELECT id FROM saved_words WHERE document_id = ?)",
+		documentID,
+	)
+	if err != nil {
+		return fmt.Errorf("delete word reviews by document: %w", err)
+	}
+	return nil
 }
 
 // sqliteNullableTime formats a *time.Time pointer as SQLite text format,
