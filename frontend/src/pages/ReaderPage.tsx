@@ -14,12 +14,14 @@ import { useChapters, useDocument } from "../hooks/useReader";
 import { useReaderSettings } from "../store/readerSettings";
 import { useLanguageSettings } from "../store/languageSettings";
 import { useReadingProgress } from "../hooks/useReadingProgress";
+import { useViewportResize } from "../hooks/useViewportResize";
+import { useKeyboardNavigation } from "../hooks/useKeyboardNavigation";
+import { useWordSelection } from "../hooks/useWordSelection";
 import { fetchChapterContent } from "../api/documents";
 import TextDisplay from "../components/TextDisplay";
 import WordPopover from "../components/WordPopover";
 import WordPanel from "../components/WordPanel";
 import SettingsPanel from "../components/SettingsPanel";
-import { loadWords, saveWord } from "../api/words";
 import { paginateBook, type BookPagination } from "../services/bookPagination";
 
 function useMediaQuery(query: string): boolean {
@@ -53,14 +55,23 @@ export default function ReaderPage() {
 
   const { savedChapterIndex, saveProgress } = useReadingProgress(id ?? "");
 
-  const [selectedWord, setSelectedWord] = useState<string | null>(null);
-  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null);
-  const [clickedWords, setClickedWords] = useState<string[]>([]);
+  const { viewportRef, viewportHeight, viewportWidth } = useViewportResize();
+  const {
+    selectedWord,
+    popoverPos,
+    clickedWords,
+    handleWordClick,
+    clearSelection,
+    clearWords,
+  } = useWordSelection({
+    documentId: id,
+    sourceLang,
+    targetLang,
+    onWordSelected: useCallback(() => setShowSidebar(true), []),
+  });
+
   const [currentPage, setCurrentPage] = useState(0);
-  const [viewportHeight, setViewportHeight] = useState(0);
-  const [viewportWidth, setViewportWidth] = useState(0);
-const isMobile = useMediaQuery("(max-width: 767px)");
-  const viewportRef = useRef<HTMLDivElement>(null);
+  const isMobile = useMediaQuery("(max-width: 767px)");
   const chapterMenuRef = useRef<HTMLDivElement>(null);
   const restoreDoneRef = useRef(false);
 
@@ -96,57 +107,17 @@ const isMobile = useMediaQuery("(max-width: 767px)");
     [allContent, viewportHeight, viewportWidth, fontSize, lineHeight],
   );
 
-  useEffect(() => {
-    loadWords()
-      .then((words) => {
-        setClickedWords(words.map((w) => w.word));
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const calculate = () => {
-      if (!viewportRef.current) return;
-      setViewportHeight(viewportRef.current.clientHeight);
-      setViewportWidth(viewportRef.current.clientWidth);
-    };
-
-    const frame = window.requestAnimationFrame(calculate);
-
-    const observer = new ResizeObserver(calculate);
-    if (viewportRef.current) observer.observe(viewportRef.current);
-    return () => {
-      window.cancelAnimationFrame(frame);
-      observer.disconnect();
-    };
-  }, []);
-
-  useEffect(() => {
-    const handleClickOutside = (e: globalThis.MouseEvent) => {
-      if (
-        chapterMenuRef.current &&
-        !chapterMenuRef.current.contains(e.target as Node)
-      ) {
-        setShowChapters(false);
-      }
-    };
-    const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setShowChapters(false);
-        setShowSettings(false);
-      }
-    };
-
-    document.addEventListener("mousedown", handleClickOutside);
-    document.addEventListener("keydown", handleEscape);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("keydown", handleEscape);
-    };
-  }, []);
-
   const totalPages = bookPagination?.pages.length ?? 0;
   const maxPage = Math.max(0, totalPages - 1);
+
+  useKeyboardNavigation({
+    maxPage,
+    setCurrentPage,
+    setShowChapters,
+    setShowSettings,
+    chapterMenuRef,
+  });
+
   const safeCurrentPage = Math.min(currentPage, maxPage);
 
   const currentBookPage =
@@ -157,39 +128,6 @@ const isMobile = useMediaQuery("(max-width: 767px)");
   const totalChapters = chapters?.length ?? 0;
   const docTitle =
     book?.title ?? currentChapterTitle ?? "Reader";
-
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === "INPUT" || tag === "SELECT" || tag === "TEXTAREA") return;
-      if (e.key === "ArrowLeft" || e.key === "PageUp") {
-        setCurrentPage((p) => Math.max(0, p - 1));
-      } else if (e.key === "ArrowRight" || e.key === "PageDown") {
-        setCurrentPage((p) => Math.min(maxPage, p + 1));
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [maxPage]);
-
-  const handleWordClick = useCallback(
-    (word: string, e: MouseEvent<HTMLSpanElement>) => {
-      const clean = word.replace(/^[^\w]+|[^\w]+$/g, "");
-      if (!clean) return;
-      const rect = (e.target as HTMLElement).getBoundingClientRect();
-      setPopoverPos({
-        x: rect.left + rect.width / 2,
-        y: rect.bottom + 4,
-      });
-      setSelectedWord(clean);
-      setClickedWords((prev) =>
-        prev.includes(clean) ? prev : [...prev, clean],
-      );
-      setShowSidebar(true);
-      saveWord({ word: clean, translation: "", documentId: id ?? "", sourceLang, targetLang });
-    },
-    [id, sourceLang, targetLang],
-  );
 
   const handlePageTurnClick = useCallback(
     (e: MouseEvent<HTMLDivElement>) => {
@@ -205,22 +143,21 @@ const isMobile = useMediaQuery("(max-width: 767px)");
         setCurrentPage((p) => Math.min(maxPage, p + 1));
       }
     },
-    [maxPage],
+    [maxPage, viewportRef],
   );
 
   const goTo = useCallback(
     (chapterIndex: number) => {
       const range = bookPagination?.chapterPageRanges.get(chapterIndex);
       if (!range) return;
-      setSelectedWord(null);
-      setPopoverPos(null);
+      clearSelection();
       setCurrentPage(range.start);
       setShowChapters(false);
       if (id) {
-        saveProgress(chapterIndex)
+        saveProgress(chapterIndex);
       }
     },
-    [id, bookPagination, saveProgress],
+    [id, bookPagination, saveProgress, clearSelection],
   );
 
   // URL param jump (takes priority over saved progress)
@@ -252,12 +189,12 @@ const isMobile = useMediaQuery("(max-width: 767px)");
 
   // Save progress on every page change (DB, debounced)
   useEffect(() => {
-    if (!bookPagination || !id) return
-    const chapterIndex = bookPagination.pages[currentPage]?.chapterIndex
+    if (!bookPagination || !id) return;
+    const chapterIndex = bookPagination.pages[currentPage]?.chapterIndex;
     if (chapterIndex !== undefined) {
-      saveProgress(chapterIndex)
+      saveProgress(chapterIndex);
     }
-  }, [id, currentPage, bookPagination, saveProgress])
+  }, [id, currentPage, bookPagination, saveProgress]);
 
   const allContentFailed =
     chapters &&
@@ -490,10 +427,7 @@ const isMobile = useMediaQuery("(max-width: 767px)");
           <WordPopover
             word={selectedWord}
             position={popoverPos}
-            onClose={() => {
-              setSelectedWord(null);
-              setPopoverPos(null);
-            }}
+            onClose={clearSelection}
             language={book?.language}
           />
         )}
@@ -505,7 +439,7 @@ const isMobile = useMediaQuery("(max-width: 767px)");
           <div className="p-4">
             <WordPanel
               words={clickedWords}
-              onClear={() => setClickedWords([])}
+              onClear={clearWords}
             />
           </div>
         </aside>
@@ -522,7 +456,7 @@ const isMobile = useMediaQuery("(max-width: 767px)");
             <div className="p-4 overflow-y-auto h-full">
               <WordPanel
                 words={clickedWords}
-                onClear={() => setClickedWords([])}
+                onClear={clearWords}
               />
             </div>
           </div>
