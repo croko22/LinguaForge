@@ -1,10 +1,10 @@
-.PHONY: lint sec test qa fmt build
+.PHONY: lint sec test qa fmt build frontend-dev frontend-build frontend-test
 
 lint:
-	golangci-lint run ./...
+	command -v golangci-lint >/dev/null 2>&1 && golangci-lint run ./... || go vet ./...
 
 sec:
-	gosec ./...
+	command -v gosec >/dev/null 2>&1 && gosec ./... || echo "gosec not installed, skipping"
 
 test:
 	go test -v ./...

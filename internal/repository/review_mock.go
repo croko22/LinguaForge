@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"sync"
 
@@ -45,7 +46,7 @@ func (m *ReviewRepoMock) GetByWordID(_ context.Context, wordID string) (*model.R
 	defer m.mu.Unlock()
 	card, ok := m.cards[wordID]
 	if !ok {
-		return nil, errors.New("review card not found")
+		return nil, sql.ErrNoRows
 	}
 	return card, nil
 }
@@ -65,7 +66,7 @@ func (m *ReviewRepoMock) UpdateReview(_ context.Context, card *model.ReviewCard)
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if _, ok := m.cards[card.WordID]; !ok {
-		return errors.New("review card not found")
+		return sql.ErrNoRows
 	}
 	m.cards[card.WordID] = card
 	return nil
