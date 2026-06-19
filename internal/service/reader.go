@@ -12,8 +12,7 @@ import (
 
 // CoverResult holds the data returned by ServeCover.
 type CoverResult struct {
-	Reader      io.ReadCloser
-	ContentType string
+	Reader io.ReadCloser
 }
 
 // DocumentReader handles read operations that absorb domain logic
