@@ -3,6 +3,7 @@ package worker
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 )
 
@@ -58,7 +59,9 @@ func (p *Pool) worker() {
 			if !ok {
 				return
 			}
-			p.process(p.ctx, job)
+			if err := p.process(p.ctx, job); err != nil {
+				slog.Error("worker: job failed", "error", err)
+			}
 		case <-p.ctx.Done():
 			return
 		}
