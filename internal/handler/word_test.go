@@ -12,6 +12,7 @@ import (
 	"github.com/croko/language-app/internal/repository"
 	"github.com/croko/language-app/internal/service"
 	"github.com/croko/language-app/internal/translator"
+	"github.com/go-chi/chi/v5"
 )
 
 type mockTranslator struct{}
@@ -82,12 +83,28 @@ func TestWordHandler_ListWords(t *testing.T) {
 func TestWordHandler_DeleteWord(t *testing.T) {
 	h, _ := setupWordHandler(t)
 
+	rctx := chi.NewRouteContext()
+	rctx.URLParams.Add("id", "w1")
 	req := httptest.NewRequest(http.MethodDelete, "/api/words/w1", nil)
+	req = req.WithContext(withChiContext(req.Context(), rctx))
 	w := httptest.NewRecorder()
 
 	h.DeleteWord(w, req)
 
 	if w.Code != http.StatusNoContent {
 		t.Fatalf("expected 204, got %d", w.Code)
+	}
+}
+
+func TestWordHandler_DeleteWord_MissingID(t *testing.T) {
+	h, _ := setupWordHandler(t)
+
+	req := httptest.NewRequest(http.MethodDelete, "/api/words/", nil)
+	w := httptest.NewRecorder()
+
+	h.DeleteWord(w, req)
+
+	if w.Code != http.StatusBadRequest {
+		t.Fatalf("expected 400, got %d", w.Code)
 	}
 }

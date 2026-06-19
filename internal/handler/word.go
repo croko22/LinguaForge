@@ -57,6 +57,11 @@ func (h *WordHandler) ListWords(w http.ResponseWriter, r *http.Request) {
 
 func (h *WordHandler) DeleteWord(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	if id == "" {
+		respondError(w, http.StatusBadRequest, "word id is required")
+		return
+	}
+
 	if err := h.svc.DeleteWord(r.Context(), id); err != nil {
 		respondError(w, http.StatusInternalServerError, "failed to delete word")
 		return

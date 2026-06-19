@@ -113,6 +113,10 @@ func (h *DocumentHandler) ListDocuments(w http.ResponseWriter, r *http.Request) 
 // Direct repo call: trivial read, no domain logic.
 func (h *DocumentHandler) GetDocument(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	if id == "" {
+		respondError(w, http.StatusBadRequest, "document id is required")
+		return
+	}
 
 	doc, err := h.docRepo.GetByID(r.Context(), id)
 	if err != nil {
@@ -151,6 +155,10 @@ func (h *DocumentHandler) DeleteDocument(w http.ResponseWriter, r *http.Request)
 // Direct repo call: trivial read, no domain logic.
 func (h *DocumentHandler) ListChapters(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	if id == "" {
+		respondError(w, http.StatusBadRequest, "document id is required")
+		return
+	}
 
 	chapters, err := h.chRepo.ListByDocumentID(r.Context(), id)
 	if err != nil {
@@ -173,6 +181,11 @@ func (h *DocumentHandler) ListChapters(w http.ResponseWriter, r *http.Request) {
 // Direct repo call: trivial read, no domain logic.
 func (h *DocumentHandler) GetChapterContent(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	if id == "" {
+		respondError(w, http.StatusBadRequest, "document id is required")
+		return
+	}
+
 	indexStr := chi.URLParam(r, "index")
 
 	index, err := strconv.Atoi(indexStr)
@@ -198,6 +211,10 @@ func (h *DocumentHandler) GetChapterContent(w http.ResponseWriter, r *http.Reque
 // Deep operation: resolves document → cover path → opens file. Absorbed into DocumentReader.
 func (h *DocumentHandler) ServeCover(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	if id == "" {
+		respondError(w, http.StatusBadRequest, "document id is required")
+		return
+	}
 
 	result, err := h.reader.ServeCover(r.Context(), id)
 	if err != nil {
@@ -244,6 +261,10 @@ type saveProgressRequest struct {
 // Deep operation: calculates percentage from chapter count. Delegated to DocumentReader.
 func (h *DocumentHandler) SaveProgress(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	if id == "" {
+		respondError(w, http.StatusBadRequest, "document id is required")
+		return
+	}
 
 	var req saveProgressRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -273,6 +294,10 @@ func (h *DocumentHandler) SaveProgress(w http.ResponseWriter, r *http.Request) {
 // Direct repo call: trivial read, no domain logic.
 func (h *DocumentHandler) GetProgress(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
+	if id == "" {
+		respondError(w, http.StatusBadRequest, "document id is required")
+		return
+	}
 
 	progress, err := h.progRepo.GetByDocumentID(id)
 	if err != nil {
