@@ -299,7 +299,7 @@ func (h *DocumentHandler) GetProgress(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	progress, err := h.progRepo.GetByDocumentID(id)
+	progress, err := h.progRepo.GetByDocumentID(r.Context(), id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			respondJSON(w, http.StatusOK, map[string]any{

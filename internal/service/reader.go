@@ -74,7 +74,7 @@ func (s *DocumentReader) SaveProgress(ctx context.Context, documentID string, ch
 	}
 	percentage := float64(chapterIndex+1) / float64(totalChapters) * 100
 
-	progress, err := s.progRepo.Upsert(documentID, chapterIndex, percentage)
+	progress, err := s.progRepo.Upsert(ctx, documentID, chapterIndex, percentage)
 	if err != nil {
 		return nil, fmt.Errorf("save progress: %w", err)
 	}

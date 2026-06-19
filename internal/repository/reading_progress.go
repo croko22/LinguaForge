@@ -11,8 +11,8 @@ import (
 )
 
 type ReadingProgressRepository interface {
-	Upsert(documentID string, chapterIndex int, percentage float64) (*model.ReadingProgress, error)
-	GetByDocumentID(documentID string) (*model.ReadingProgress, error)
+	Upsert(ctx context.Context, documentID string, chapterIndex int, percentage float64) (*model.ReadingProgress, error)
+	GetByDocumentID(ctx context.Context, documentID string) (*model.ReadingProgress, error)
 	DeleteByDocumentID(ctx context.Context, documentID string) error
 }
 
@@ -24,11 +24,11 @@ func NewReadingProgressRepository(db *sql.DB) ReadingProgressRepository {
 	return &readingProgressRepo{db: db}
 }
 
-func (r *readingProgressRepo) Upsert(documentID string, chapterIndex int, percentage float64) (*model.ReadingProgress, error) {
+func (r *readingProgressRepo) Upsert(ctx context.Context, documentID string, chapterIndex int, percentage float64) (*model.ReadingProgress, error) {
 	now := time.Now().UTC()
 	id := uuid.New().String()
 
-	_, err := r.db.Exec(`
+	_, err := r.db.ExecContext(ctx, `
 		INSERT INTO reading_progress (id, document_id, chapter_index, percentage, updated_at)
 		VALUES (?, ?, ?, ?, ?)
 		ON CONFLICT(document_id) DO UPDATE SET
@@ -40,10 +40,10 @@ func (r *readingProgressRepo) Upsert(documentID string, chapterIndex int, percen
 		return nil, fmt.Errorf("upsert reading progress: %w", err)
 	}
 
-	return r.GetByDocumentID(documentID)
+	return r.GetByDocumentID(ctx, documentID)
 }
 
-func (r *readingProgressRepo) GetByDocumentID(documentID string) (*model.ReadingProgress, error) {
+func (r *readingProgressRepo) GetByDocumentID(ctx context.Context, documentID string) (*model.ReadingProgress, error) {
 	query := `
 		SELECT id, document_id, chapter_index, percentage, updated_at
 		FROM reading_progress
@@ -51,7 +51,7 @@ func (r *readingProgressRepo) GetByDocumentID(documentID string) (*model.Reading
 	`
 	p := &model.ReadingProgress{}
 	var updatedRaw any
-	err := r.db.QueryRow(query, documentID).Scan(
+	err := r.db.QueryRowContext(ctx, query, documentID).Scan(
 		&p.ID,
 		&p.DocumentID,
 		&p.ChapterIndex,
