@@ -5,16 +5,19 @@ import (
 	"sync"
 )
 
+// TranslateRequest is the payload for a translation request.
 type TranslateRequest struct {
 	Word       string `json:"word"`
 	SourceLang string `json:"source_lang"`
 	TargetLang string `json:"target_lang"`
 }
 
+// TranslateResponse holds the result of a translation.
 type TranslateResponse struct {
 	Translation string `json:"translation"`
 }
 
+// Translator translates a single word from one language to another.
 type Translator interface {
 	Translate(ctx context.Context, req TranslateRequest) (*TranslateResponse, error)
 }
@@ -50,11 +53,12 @@ func NewProvider(settings *Settings) *Provider {
 	}
 }
 
-// GetTranslator returns the currently active Translator.
+// Translate delegates to the active translator.
 func (p *Provider) Translate(ctx context.Context, req TranslateRequest) (*TranslateResponse, error) {
 	return p.GetTranslator().Translate(ctx, req)
 }
 
+// GetTranslator returns the currently active Translator.
 func (p *Provider) GetTranslator() Translator {
 	p.mu.RLock()
 	defer p.mu.RUnlock()

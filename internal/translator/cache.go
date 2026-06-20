@@ -6,6 +6,8 @@ import (
 	"sync"
 )
 
+// NewCachedTranslator wraps a Translator with an in-memory LRU-style cache
+// keyed by word|source_lang|target_lang.
 func NewCachedTranslator(inner Translator) Translator {
 	return &cachedTranslator{
 		inner: inner,

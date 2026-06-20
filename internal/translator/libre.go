@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// LibreClient is a Translator backed by a LibreTranslate-compatible HTTP API.
 type LibreClient struct {
 	endpoint string
 	apiKey   string

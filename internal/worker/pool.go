@@ -7,6 +7,7 @@ import (
 	"sync"
 )
 
+// Job describes a document to be processed by the worker pool.
 type Job struct {
 	DocID       string
 	Filename    string
@@ -14,8 +15,10 @@ type Job struct {
 	StoragePath string
 }
 
+// ErrPoolStopped is returned when attempting to enqueue after the pool has stopped.
 var ErrPoolStopped = fmt.Errorf("worker pool: stopped")
 
+// Pool is a bounded, concurrent worker pool for processing documents asynchronously.
 type Pool struct {
 	jobs    chan Job
 	workers int
@@ -27,6 +30,7 @@ type Pool struct {
 	wg      sync.WaitGroup
 }
 
+// New creates a worker pool with n workers and a job buffer of buf.
 func New(n int, buf int, process func(context.Context, Job) error) *Pool {
 	return &Pool{
 		jobs:    make(chan Job, buf),
@@ -35,6 +39,7 @@ func New(n int, buf int, process func(context.Context, Job) error) *Pool {
 	}
 }
 
+// Start launches the worker goroutines. Must be called once before Enqueue.
 func (p *Pool) Start() {
 	p.mu.Lock()
 	if p.started {
@@ -68,6 +73,7 @@ func (p *Pool) worker() {
 	}
 }
 
+// Enqueue adds a job to the work queue. Returns ErrPoolStopped if the pool is shut down.
 func (p *Pool) Enqueue(job Job) error {
 	p.mu.Lock()
 	ctx := p.ctx
@@ -88,6 +94,7 @@ func (p *Pool) Enqueue(job Job) error {
 	}
 }
 
+// Stop signals all workers to shut down and waits for them to finish.
 func (p *Pool) Stop() {
 	p.mu.Lock()
 	if !p.started {

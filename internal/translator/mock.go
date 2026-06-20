@@ -6,11 +6,13 @@ import (
 	"strings"
 )
 
+// MockTranslator is a Translator backed by a small embedded dictionary.
+// Unknown words get a "[word]" fallback so it's obvious when the mock is active.
 type MockTranslator struct {
-	// Simple embedded dictionary for realistic-looking translations
 	dict map[string]string
 }
 
+// NewMockTranslator creates a Translator with a built-in en→es dictionary.
 func NewMockTranslator() Translator {
 	return &MockTranslator{
 		dict: map[string]string{
@@ -44,6 +46,7 @@ func NewMockTranslator() Translator {
 	}
 }
 
+// Translate looks up the word in the embedded dictionary or returns a bracketed fallback.
 func (m *MockTranslator) Translate(ctx context.Context, req TranslateRequest) (*TranslateResponse, error) {
 	if req.Word == "" {
 		return nil, fmt.Errorf("word cannot be empty")
