@@ -101,13 +101,14 @@ func (s *DocumentIngester) UploadDocument(ctx context.Context, filename string, 
 	}
 	doc.StoragePath = storagePath
 
+	job := worker.Job{
+		DocID:       docID,
+		Filename:    filename,
+		FileSize:    fileSize,
+		StoragePath: storagePath,
+	}
+
 	if s.enqueue != nil {
-		job := worker.Job{
-			DocID:       docID,
-			Filename:    filename,
-			FileSize:    fileSize,
-			StoragePath: storagePath,
-		}
 		if err := s.enqueue(job); err != nil {
 			_ = s.docRepo.UpdateStatus(ctx, docID, model.StatusError, "enqueue failed")
 			return nil, fmt.Errorf("upload document: enqueue: %w", err)
@@ -115,12 +116,6 @@ func (s *DocumentIngester) UploadDocument(ctx context.Context, filename string, 
 		return doc, nil
 	}
 
-	job := worker.Job{
-		DocID:       docID,
-		Filename:    filename,
-		FileSize:    fileSize,
-		StoragePath: storagePath,
-	}
 	if err := s.ProcessBook(ctx, job); err != nil {
 		return nil, fmt.Errorf("upload document: process: %w", err)
 	}
