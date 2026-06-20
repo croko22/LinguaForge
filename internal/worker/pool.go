@@ -70,9 +70,10 @@ func (p *Pool) worker() {
 
 func (p *Pool) Enqueue(job Job) error {
 	p.mu.Lock()
+	ctx := p.ctx
 	if !p.started {
 		p.mu.Unlock()
-		if p.ctx != nil && p.ctx.Err() != nil {
+		if ctx != nil && ctx.Err() != nil {
 			return ErrPoolStopped
 		}
 		return fmt.Errorf("worker pool: not started")
@@ -82,7 +83,7 @@ func (p *Pool) Enqueue(job Job) error {
 	select {
 	case p.jobs <- job:
 		return nil
-	case <-p.ctx.Done():
+	case <-ctx.Done():
 		return ErrPoolStopped
 	}
 }
