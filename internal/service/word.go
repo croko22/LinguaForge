@@ -11,12 +11,15 @@ import (
 	"github.com/google/uuid"
 )
 
+// WordService coordinates word saving (with auto-translation and review card creation),
+// listing, and deletion.
 type WordService struct {
 	repo       repository.WordRepository
 	reviewRepo repository.ReviewRepository
 	translator translator.Translator
 }
 
+// NewWordService creates a WordService.
 func NewWordService(repo repository.WordRepository, reviewRepo repository.ReviewRepository, t translator.Translator) *WordService {
 	return &WordService{
 		repo:       repo,
@@ -25,6 +28,8 @@ func NewWordService(repo repository.WordRepository, reviewRepo repository.Review
 	}
 }
 
+// SaveWord persists a word, auto-translates if no translation is given (with retries),
+// and creates an SRS review card for it.
 func (s *WordService) SaveWord(ctx context.Context, documentID, word, translation, sourceLang, targetLang string) (*model.SavedWord, error) {
 	// If no translation provided, call the translator with retries
 	if translation == "" {
@@ -90,10 +95,12 @@ func (s *WordService) SaveWord(ctx context.Context, documentID, word, translatio
 	return sw, nil
 }
 
+// ListWords returns all saved words.
 func (s *WordService) ListWords(ctx context.Context) ([]*model.SavedWord, error) {
 	return s.repo.ListAll(ctx)
 }
 
+// DeleteWord removes a saved word by ID.
 func (s *WordService) DeleteWord(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
 }

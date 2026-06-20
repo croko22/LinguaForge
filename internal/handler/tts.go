@@ -6,14 +6,17 @@ import (
 	"github.com/croko/language-app/internal/tts"
 )
 
+// TTSHandler serves MP3 audio for a word via the TTS service.
 type TTSHandler struct {
 	svc *tts.Service
 }
 
+// NewTTSHandler creates a TTSHandler.
 func NewTTSHandler(svc *tts.Service) *TTSHandler {
 	return &TTSHandler{svc: svc}
 }
 
+// ServeHTTP handles GET /api/tts?word=...&lang=... — returns MP3 bytes.
 func (h *TTSHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	word := r.URL.Query().Get("word")
 	if word == "" {

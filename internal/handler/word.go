@@ -8,10 +8,12 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
+// WordHandler handles CRUD for saved words.
 type WordHandler struct {
 	svc *service.WordService
 }
 
+// NewWordHandler creates a WordHandler.
 func NewWordHandler(svc *service.WordService) *WordHandler {
 	return &WordHandler{svc: svc}
 }
@@ -24,6 +26,7 @@ type saveWordRequest struct {
 	TargetLang  string `json:"target_lang"`
 }
 
+// SaveWord handles POST /api/words — saves a word with optional auto-translation.
 func (h *WordHandler) SaveWord(w http.ResponseWriter, r *http.Request) {
 	var req saveWordRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -45,6 +48,7 @@ func (h *WordHandler) SaveWord(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusCreated, saved)
 }
 
+// ListWords handles GET /api/words — returns all saved words.
 func (h *WordHandler) ListWords(w http.ResponseWriter, r *http.Request) {
 	words, err := h.svc.ListWords(r.Context())
 	if err != nil {
@@ -55,6 +59,7 @@ func (h *WordHandler) ListWords(w http.ResponseWriter, r *http.Request) {
 	respondJSON(w, http.StatusOK, words)
 }
 
+// DeleteWord handles DELETE /api/words/{id}.
 func (h *WordHandler) DeleteWord(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 	if id == "" {
