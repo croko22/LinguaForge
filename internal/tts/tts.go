@@ -31,6 +31,8 @@ var voiceForLang = map[string]string{
 	"tr": "tr-TR-EmelNeural",
 }
 
+// VoiceForLanguage maps a two-letter language code to a Microsoft edge-tts
+// neural voice name. Falls back to en-US-AriaNeural for unknown codes.
 func VoiceForLanguage(lang string) string {
 	if v, ok := voiceForLang[lang]; ok {
 		return v
@@ -44,6 +46,8 @@ type synthesizer interface {
 	Close() error
 }
 
+// Service synthesizes speech via edge-tts WebSocket with local MP3 caching
+// and a concurrency semaphore (max 4 concurrent requests).
 type Service struct {
 	cacheDir    string
 	defaultLang string
@@ -56,6 +60,7 @@ var defaultNewClient = func() (synthesizer, error) {
 	return newEdgeClient()
 }
 
+// NewService creates a TTS service with the given MP3 cache directory and default language.
 func NewService(cacheDir, defaultLang string) (*Service, error) {
 	if err := os.MkdirAll(cacheDir, 0750); err != nil {
 		return nil, fmt.Errorf("create tts cache dir: %w", err)
@@ -69,6 +74,8 @@ func NewService(cacheDir, defaultLang string) (*Service, error) {
 	}, nil
 }
 
+// Synthesize generates MP3 audio for the given word and language.
+// Results are cached on disk by content hash.
 func (s *Service) Synthesize(ctx context.Context, word, language string) ([]byte, error) {
 	if language == "" {
 		language = s.defaultLang
@@ -117,6 +124,7 @@ func (s *Service) Synthesize(ctx context.Context, word, language string) ([]byte
 	return data, nil
 }
 
+// cacheName produces a deterministic MP3 filename from word, language, and voice.
 func cacheName(word, language, voice string) string {
 	h := sha256.Sum256([]byte(word + "|" + language + "|" + voice))
 	return hex.EncodeToString(h[:]) + ".mp3"
