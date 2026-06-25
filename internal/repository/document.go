@@ -16,6 +16,8 @@ type DocumentRepository interface {
 	UpdateStatus(ctx context.Context, id, status string, errMsg ...string) error
 	UpdateMetadata(ctx context.Context, doc *model.Document) error
 	Delete(ctx context.Context, id string) error
+	CountAll(ctx context.Context) (int, error)
+	CountByLanguage(ctx context.Context) ([]LanguageCount, error)
 }
 
 type documentRepo struct {

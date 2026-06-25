@@ -77,6 +77,7 @@ func main() {
 	wordHandler := handler.NewWordHandler(wordService)
 	transHandler := handler.NewTranslateHandler(translator.NewCachedTranslator(transProvider))
 	settingsHandler := handler.NewSettingsHandler(transProvider)
+	statsHandler := handler.NewStatsHandler(docRepo, chRepo, wordRepo, reviewRepo)
 
 	ttsService, err := tts.NewService(cfg.TTSDir, "en")
 	if err != nil {
@@ -100,6 +101,7 @@ func main() {
 	r.Get("/api/words", wordHandler.ListWords)
 	r.Delete("/api/words/{id}", wordHandler.DeleteWord)
 	reviewHandler.RegisterRoutes(r)
+	r.Get("/api/stats", statsHandler.GetStats)
 
 	// 6. Health check
 	r.Get("/health", func(w http.ResponseWriter, _ *http.Request) {

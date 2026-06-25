@@ -16,6 +16,7 @@ type ChapterRepository interface {
 	GetByDocumentAndIndex(ctx context.Context, documentID string, index int) (*model.Chapter, error)
 	DeleteByDocumentID(ctx context.Context, documentID string) error
 	CountByDocumentID(ctx context.Context, documentID string) (int, error)
+	CountAll(ctx context.Context) (int, error)
 }
 
 type chapterRepo struct {

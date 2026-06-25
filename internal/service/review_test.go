@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/croko/language-app/internal/model"
+	"github.com/croko/language-app/internal/repository"
 	"github.com/croko/language-app/internal/srs"
 )
 
@@ -45,6 +46,10 @@ func (m *mockReviewRepo) CountDue(ctx context.Context) (int, error) {
 	return m.countDueFunc(ctx)
 }
 
+func (m *mockReviewRepo) GetReviewActivity(_ context.Context, _ int) ([]repository.ReviewActivity, error) {
+	return nil, nil
+}
+
 func (m *mockReviewRepo) DeleteByDocumentID(_ context.Context, _ string) error {
 	return nil
 }
@@ -76,6 +81,10 @@ func (m *mockWordRepo) Delete(ctx context.Context, id string) error {
 		return nil
 	}
 	return m.deleteFunc(ctx, id)
+}
+
+func (m *mockWordRepo) CountAll(_ context.Context) (int, error) {
+	return 0, nil
 }
 
 func (m *mockWordRepo) DeleteByDocumentID(_ context.Context, _ string) error {

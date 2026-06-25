@@ -26,6 +26,8 @@ type ReviewRepository interface {
 	CountDue(ctx context.Context) (int, error)
 	// DeleteByDocumentID deletes all review cards for words belonging to the given document.
 	DeleteByDocumentID(ctx context.Context, documentID string) error
+	// GetReviewActivity returns review counts per day for the last N days.
+	GetReviewActivity(ctx context.Context, days int) ([]ReviewActivity, error)
 }
 
 type reviewRepo struct {

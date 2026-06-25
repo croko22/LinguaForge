@@ -8,7 +8,7 @@ import {
   useSyncExternalStore,
   type MouseEvent,
 } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useQueries } from "@tanstack/react-query";
 import { useChapters, useDocument } from "../hooks/useReader";
 import { useReaderSettings } from "../store/readerSettings";
@@ -217,9 +217,9 @@ export default function ReaderPage() {
           <p className="text-text-secondary mb-4">
             This document may have been deleted or is unavailable.
           </p>
-          <a href="/" className="text-primary hover:underline">
+          <Link to="/library" className="text-primary hover:underline">
             ← Back to Library
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -235,9 +235,9 @@ export default function ReaderPage() {
           <p className="text-text-secondary mb-4">
             There was a problem loading this book.
           </p>
-          <a href="/" className="text-primary hover:underline">
+          <Link to="/library" className="text-primary hover:underline">
             ← Back to Library
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -253,9 +253,9 @@ export default function ReaderPage() {
           <p className="text-text-secondary mb-4">
             There was a problem loading this chapter.
           </p>
-          <a href="/" className="text-primary hover:underline">
+          <Link to="/library" className="text-primary hover:underline">
             ← Back to Library
-          </a>
+          </Link>
         </div>
       </div>
     );
@@ -283,15 +283,15 @@ export default function ReaderPage() {
         {/* Header - neutral bg, never changes with theme */}
         <header className="bg-surface border-b px-4 py-2 md:py-3 flex items-center justify-between gap-3 shrink-0 relative">
           <div className="flex items-center gap-3 min-w-0 flex-1">
-            <a
-              href="/"
+            <Link
+              to="/library"
               className="text-text-muted hover:text-text-secondary transition-colors shrink-0"
               title="Back to library"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
               </svg>
-            </a>
+            </Link>
             <div className="min-w-0">
               <div className="text-[11px] uppercase tracking-[0.24em] text-text-muted truncate">
                 {docTitle}

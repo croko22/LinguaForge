@@ -38,3 +38,7 @@ func (m *WordRepoMock) Delete(ctx context.Context, id string) error {
 func (m *WordRepoMock) DeleteByDocumentID(ctx context.Context, documentID string) error {
 	return nil
 }
+
+func (m *WordRepoMock) CountAll(ctx context.Context) (int, error) {
+	return len(m.words), nil
+}

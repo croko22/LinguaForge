@@ -15,6 +15,7 @@ type WordRepository interface {
 	ListAll(ctx context.Context) ([]*model.SavedWord, error)
 	Delete(ctx context.Context, id string) error
 	DeleteByDocumentID(ctx context.Context, documentID string) error
+	CountAll(ctx context.Context) (int, error)
 }
 
 type wordRepo struct {

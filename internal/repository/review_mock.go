@@ -82,3 +82,7 @@ func (m *ReviewRepoMock) CountDue(_ context.Context) (int, error) {
 func (m *ReviewRepoMock) DeleteByDocumentID(_ context.Context, _ string) error {
 	return nil
 }
+
+func (m *ReviewRepoMock) GetReviewActivity(_ context.Context, _ int) ([]ReviewActivity, error) {
+	return []ReviewActivity{}, nil
+}
