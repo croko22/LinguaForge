@@ -32,8 +32,8 @@ func TestSettingsHandler_GetSettings(t *testing.T) {
 	if resp.ActiveProvider != "mock" {
 		t.Fatalf("expected active_provider 'mock', got '%s'", resp.ActiveProvider)
 	}
-	if len(resp.Providers) != 2 {
-		t.Fatalf("expected 2 providers, got %d", len(resp.Providers))
+	if len(resp.Providers) != 3 {
+		t.Fatalf("expected 3 providers, got %d", len(resp.Providers))
 	}
 }
 

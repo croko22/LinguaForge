@@ -29,6 +29,8 @@ func NewFromSettings(settings *Settings) Translator {
 			switch p.Name {
 			case "libre":
 				return NewLibreTranslate(p.Endpoint, p.APIKey)
+			case "deepl":
+				return NewDeepLTranslate(p.Endpoint, p.APIKey)
 			case "mock":
 				return NewMockTranslator()
 			}

@@ -20,6 +20,7 @@ func DefaultSettings() *Settings {
 		Providers: []ProviderConfig{
 			{Name: "mock", Endpoint: "", APIKey: ""},
 			{Name: "libre", Endpoint: "https://libretranslate.com", APIKey: ""},
+			{Name: "deepl", Endpoint: "https://api-free.deepl.com", APIKey: ""},
 		},
 	}
 }
@@ -32,6 +33,7 @@ func WithLibreAsDefault(endpoint, apiKey string) *Settings {
 		Providers: []ProviderConfig{
 			{Name: "mock", Endpoint: "", APIKey: ""},
 			{Name: "libre", Endpoint: endpoint, APIKey: apiKey},
+			{Name: "deepl", Endpoint: "https://api-free.deepl.com", APIKey: ""},
 		},
 	}
 }

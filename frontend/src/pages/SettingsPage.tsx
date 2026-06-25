@@ -89,6 +89,37 @@ export default function SettingsPage() {
         >
           <h3 className="font-semibold capitalize mb-3">{p.name}</h3>
 
+          {p.name === 'deepl' && (
+            <>
+              <div className="mb-3">
+                <label className="block text-xs text-text-secondary mb-1">API URL</label>
+                <input
+                  type="text"
+                  value={p.endpoint}
+                  onChange={(e) => handleEndpointChange(p.name, e.target.value)}
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  placeholder="https://api-free.deepl.com"
+                />
+              </div>
+              <div className="mb-3">
+                <label className="block text-xs text-text-secondary mb-1">Authentication Key</label>
+                <input
+                  type="password"
+                  value={p.api_key ?? ''}
+                  onChange={(e) => handleApiKeyChange(p.name, e.target.value)}
+                  className="w-full border rounded px-3 py-2 text-sm"
+                  placeholder="DeepL-Auth-Key xxxx-xxxx-xxxx-xxxx"
+                />
+                <p className="text-xs text-text-muted mt-1">
+                  Get your key at{' '}
+                  <a href="https://www.deepl.com/pro-api" className="underline" target="_blank" rel="noreferrer">
+                    deepl.com/pro-api
+                  </a>
+                </p>
+              </div>
+            </>
+          )}
+
           {p.name === 'libre' && (
             <>
               <div className="mb-3">
