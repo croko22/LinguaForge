@@ -1,27 +1,10 @@
-import { useState, useEffect } from 'react'
-import { API_BASE } from '../api/config'
-import { useLanguageSettings } from '../store/languageSettings'
-
 interface WordPanelProps {
   words: string[]
+  translations?: Record<string, string>
   onClear: () => void
 }
 
-function WordItem({ word, count }: { word: string; count: number }) {
-  const { sourceLang, targetLang } = useLanguageSettings()
-  const [translation, setTranslation] = useState<string | null>(null)
-
-  useEffect(() => {
-    fetch(`${API_BASE}/translate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ word, source_lang: sourceLang, target_lang: targetLang }),
-    })
-      .then((r) => r.json())
-      .then((data) => setTranslation(data.translation))
-      .catch(() => {})
-  }, [word, sourceLang, targetLang])
-
+function WordItem({ word, count, translation }: { word: string; count: number; translation?: string }) {
   return (
     <li className="group flex items-center justify-between px-3 py-2 rounded-lg hover:bg-surface-hover transition-colors cursor-default">
       <div className="flex items-center gap-2 min-w-0">
@@ -39,7 +22,7 @@ function WordItem({ word, count }: { word: string; count: number }) {
   )
 }
 
-export default function WordPanel({ words, onClear }: WordPanelProps) {
+export default function WordPanel({ words, translations = {}, onClear }: WordPanelProps) {
   const unique = words.reduce<{ word: string; count: number }[]>((acc, w) => {
     const existing = acc.find(item => item.word === w)
     if (existing) existing.count++
@@ -65,7 +48,12 @@ export default function WordPanel({ words, onClear }: WordPanelProps) {
       ) : (
         <ul className="space-y-0.5">
           {unique.map(({ word, count }) => (
-            <WordItem key={word} word={word} count={count} />
+            <WordItem
+              key={word}
+              word={word}
+              count={count}
+              translation={translations[word]}
+            />
           ))}
         </ul>
       )}

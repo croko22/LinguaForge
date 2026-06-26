@@ -48,4 +48,9 @@ describe('WordPanel', () => {
     expect(gatoElements).toHaveLength(1)
     expect(screen.getByText('×2')).toBeInTheDocument()
   })
+
+  it('shows centralized translations', () => {
+    render(<WordPanel words={['gato']} translations={{ gato: 'cat' }} onClear={vi.fn()} />)
+    expect(screen.getByText('cat')).toBeInTheDocument()
+  })
 })

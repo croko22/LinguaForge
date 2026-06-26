@@ -1,5 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from 'react'
-import { API_BASE } from '../api/config'
+import { useEffect, useRef, useCallback } from 'react'
 import { playWordAudio } from '../api/tts'
 import { useLanguageSettings } from '../store/languageSettings'
 
@@ -8,50 +7,22 @@ interface WordPopoverProps {
   position: { x: number; y: number }
   onClose: () => void
   language?: string
+  translation?: string | null
+  loading?: boolean
+  error?: boolean
 }
 
-export default function WordPopover({ word, position, onClose, language }: WordPopoverProps) {
-  const { sourceLang, targetLang } = useLanguageSettings()
+export default function WordPopover({
+  word,
+  position,
+  onClose,
+  language,
+  translation = null,
+  loading = false,
+  error = false,
+}: WordPopoverProps) {
+  const { sourceLang } = useLanguageSettings()
   const ref = useRef<HTMLDivElement>(null)
-  const [result, setResult] = useState<{
-    word: string | null
-    translation: string | null
-    error: boolean
-  }>({ word: null, translation: null, error: false })
-
-  const isCurrentResult = result.word === word
-  const translation = isCurrentResult ? result.translation : null
-  const error = isCurrentResult ? result.error : false
-  const loading = !!word && !isCurrentResult
-
-  useEffect(() => {
-    if (!word) return
-    let cancelled = false
-
-    fetch(`${API_BASE}/translate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ word, source_lang: language ?? sourceLang, target_lang: targetLang }),
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error('HTTP ' + res.status)
-        return res.json()
-      })
-      .then((data) => {
-        if (!cancelled) {
-          setResult({ word, translation: data.translation, error: false })
-        }
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setResult({ word, translation: null, error: true })
-        }
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [word, language, sourceLang, targetLang])
 
   useEffect(() => {
     if (!word) return

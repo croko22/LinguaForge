@@ -60,12 +60,16 @@ export default function ReaderPage() {
     selectedWord,
     popoverPos,
     clickedWords,
+    translations,
+    selectedTranslation,
+    selectedTranslationLoading,
+    selectedTranslationError,
     handleWordClick,
     clearSelection,
     clearWords,
   } = useWordSelection({
     documentId: id,
-    sourceLang,
+    sourceLang: book?.language ?? sourceLang,
     targetLang,
     onWordSelected: useCallback(() => setShowSidebar(true), []),
   });
@@ -428,7 +432,10 @@ export default function ReaderPage() {
             word={selectedWord}
             position={popoverPos}
             onClose={clearSelection}
-            language={book?.language}
+            language={book?.language ?? sourceLang}
+            translation={selectedTranslation}
+            loading={selectedTranslationLoading}
+            error={selectedTranslationError}
           />
         )}
       </div>
@@ -439,6 +446,7 @@ export default function ReaderPage() {
           <div className="p-4">
             <WordPanel
               words={clickedWords}
+              translations={translations}
               onClear={clearWords}
             />
           </div>
@@ -456,6 +464,7 @@ export default function ReaderPage() {
             <div className="p-4 overflow-y-auto h-full">
               <WordPanel
                 words={clickedWords}
+                translations={translations}
                 onClear={clearWords}
               />
             </div>

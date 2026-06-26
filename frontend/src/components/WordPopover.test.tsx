@@ -40,8 +40,13 @@ describe('WordPopover', () => {
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('shows translation', async () => {
-    render(<WordPopover word="gato" position={pos} onClose={vi.fn()} />)
-    expect(await screen.findByText(/cat/i)).toBeInTheDocument()
+  it('shows translation', () => {
+    render(<WordPopover word="gato" position={pos} onClose={vi.fn()} translation="cat" />)
+    expect(screen.getByText(/cat/i)).toBeInTheDocument()
+  })
+
+  it('shows translation failure', () => {
+    render(<WordPopover word="gato" position={pos} onClose={vi.fn()} error />)
+    expect(screen.getByText(/translation failed/i)).toBeInTheDocument()
   })
 })
