@@ -6,7 +6,9 @@ import {
   useRef,
   memo,
   useSyncExternalStore,
+  type Dispatch,
   type MouseEvent,
+  type SetStateAction,
 } from "react";
 import { Link, useParams } from "react-router-dom";
 import { useQueries } from "@tanstack/react-query";
@@ -53,7 +55,11 @@ export default function ReaderPage() {
   const { data: book, isError: documentError } = useDocument(id ?? "");
   const { data: chapters, isError: chaptersError } = useChapters(id ?? "");
 
-  const { savedChapterIndex, saveProgress } = useReadingProgress(id ?? "");
+  const {
+    savedChapterIndex,
+    isLoading: isProgressLoading,
+    saveProgress,
+  } = useReadingProgress(id ?? "");
 
   const { viewportRef, viewportHeight, viewportWidth } = useViewportResize();
   const {
@@ -77,7 +83,27 @@ export default function ReaderPage() {
   const [currentPage, setCurrentPage] = useState(0);
   const isMobile = useMediaQuery("(max-width: 767px)");
   const chapterMenuRef = useRef<HTMLDivElement>(null);
-  const restoreDoneRef = useRef(false);
+  const routeKey = `${id ?? ""}:${chapterIndexParam ?? ""}`;
+  const [initialPosition, setInitialPosition] = useState({
+    routeKey: "",
+    applied: false,
+    saveEnabled: false,
+  });
+  const initialPositionApplied =
+    initialPosition.routeKey === routeKey && initialPosition.applied;
+  const progressSaveEnabled =
+    initialPosition.routeKey === routeKey && initialPosition.saveEnabled;
+  const setCurrentPageFromUser = useCallback<Dispatch<SetStateAction<number>>>(
+    (value) => {
+      setInitialPosition((state) =>
+        state.routeKey === routeKey && state.applied && !state.saveEnabled
+          ? { ...state, saveEnabled: true }
+          : state,
+      );
+      setCurrentPage(value);
+    },
+    [routeKey],
+  );
 
   const chapterContents = useQueries({
     queries: (chapters ?? []).map((ch) => ({
@@ -116,7 +142,7 @@ export default function ReaderPage() {
 
   useKeyboardNavigation({
     maxPage,
-    setCurrentPage,
+    setCurrentPage: setCurrentPageFromUser,
     setShowChapters,
     setShowSettings,
     chapterMenuRef,
@@ -142,12 +168,12 @@ export default function ReaderPage() {
       const width = rect.width;
 
       if (x < width * 0.3) {
-        setCurrentPage((p) => Math.max(0, p - 1));
+        setCurrentPageFromUser((p) => Math.max(0, p - 1));
       } else if (x > width * 0.7) {
-        setCurrentPage((p) => Math.min(maxPage, p + 1));
+        setCurrentPageFromUser((p) => Math.min(maxPage, p + 1));
       }
     },
-    [maxPage, viewportRef],
+    [maxPage, setCurrentPageFromUser, viewportRef],
   );
 
   const goTo = useCallback(
@@ -155,35 +181,44 @@ export default function ReaderPage() {
       const range = bookPagination?.chapterPageRanges.get(chapterIndex);
       if (!range) return;
       clearSelection();
-      setCurrentPage(range.start);
+      setCurrentPageFromUser(range.start);
       setShowChapters(false);
-      if (id) {
-        saveProgress(chapterIndex);
-      }
     },
-    [id, bookPagination, saveProgress, clearSelection],
+    [bookPagination, setCurrentPageFromUser, clearSelection],
   );
 
-  // URL param jump (takes priority over saved progress)
+  // URL param deep-links win; otherwise wait for DB progress before choosing the first page.
   useEffect(() => {
-    if (!chapterIndexParam || !bookPagination || restoreDoneRef.current) return;
-    restoreDoneRef.current = true;
-    const range = bookPagination.chapterPageRanges.get(parseInt(chapterIndexParam, 10));
-    if (range) {
-      setCurrentPage(range.start); // eslint-disable-line react-hooks/set-state-in-effect -- syncing URL param to state
-    }
-  }, [chapterIndexParam, bookPagination]);
+    if (!bookPagination || initialPositionApplied) return;
 
-  // Restore saved progress from DB (one-time, only if no URL param)
-  useEffect(() => {
-    if (restoreDoneRef.current) return;
-    if (!bookPagination || savedChapterIndex === null) return;
-    restoreDoneRef.current = true;
-    const range = bookPagination.chapterPageRanges.get(savedChapterIndex);
-    if (range) {
-      setCurrentPage(range.start); // eslint-disable-line react-hooks/set-state-in-effect -- syncing DB state to local state
+    if (chapterIndexParam !== undefined) {
+      const range = bookPagination.chapterPageRanges.get(
+        parseInt(chapterIndexParam, 10),
+      );
+      if (range) {
+        setCurrentPage(range.start); // eslint-disable-line react-hooks/set-state-in-effect -- syncing URL param to state
+      }
+      setInitialPosition({ routeKey, applied: true, saveEnabled: false });
+      return;
     }
-  }, [bookPagination, savedChapterIndex]);
+
+    if (isProgressLoading) return;
+
+    if (savedChapterIndex !== null) {
+      const range = bookPagination.chapterPageRanges.get(savedChapterIndex);
+      if (range) {
+        setCurrentPage(range.start);
+      }
+    }
+    setInitialPosition({ routeKey, applied: true, saveEnabled: false });
+  }, [
+    bookPagination,
+    chapterIndexParam,
+    initialPositionApplied,
+    isProgressLoading,
+    routeKey,
+    savedChapterIndex,
+  ]);
 
   // Clamp page when pagination changes (resize, content load)
   const clampedPage = bookPagination ? Math.min(currentPage, Math.max(0, bookPagination.pages.length - 1)) : currentPage;
@@ -193,12 +228,19 @@ export default function ReaderPage() {
 
   // Save progress on every page change (DB, debounced)
   useEffect(() => {
-    if (!bookPagination || !id) return;
+    if (!bookPagination || !id || !initialPositionApplied || !progressSaveEnabled) return;
     const chapterIndex = bookPagination.pages[currentPage]?.chapterIndex;
     if (chapterIndex !== undefined) {
       saveProgress(chapterIndex);
     }
-  }, [id, currentPage, bookPagination, saveProgress]);
+  }, [
+    id,
+    currentPage,
+    bookPagination,
+    initialPositionApplied,
+    progressSaveEnabled,
+    saveProgress,
+  ]);
 
   const allContentFailed =
     chapters &&
@@ -265,7 +307,7 @@ export default function ReaderPage() {
     );
   }
 
-  if (!bookPagination || isLoadingContent) {
+  if (!bookPagination || isLoadingContent || !initialPositionApplied) {
     return (
       <div className="flex h-screen items-center justify-center">
         <p className="text-text-secondary">Loading...</p>

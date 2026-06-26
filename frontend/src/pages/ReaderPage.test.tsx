@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
@@ -11,13 +11,23 @@ import type { Chapter, ChapterContent } from '../api/documents'
 const mockFetch = vi.fn()
 vi.stubGlobal('fetch', mockFetch)
 
-const { mockGetProgress } = vi.hoisted(() => ({
+const { mockGetProgress, mockSaveProgress, mockSaveProgressService } = vi.hoisted(() => ({
   mockGetProgress: vi.fn().mockResolvedValue(null),
+  mockSaveProgress: vi.fn().mockResolvedValue({ chapter_index: 0, percentage: 0 }),
+  mockSaveProgressService: vi.fn(),
 }))
 
 vi.mock('../api/progress', () => ({
   getReadingProgress: mockGetProgress,
-  saveReadingProgress: vi.fn().mockResolvedValue({ chapter_index: 0, percentage: 0 }),
+  saveReadingProgress: mockSaveProgress,
+}))
+
+vi.mock('../services/readingProgress', () => ({
+  fetchReadingProgress: async (documentId: string) => {
+    const result = await mockGetProgress(documentId)
+    return result?.chapter_index ?? null
+  },
+  saveReadingProgress: mockSaveProgressService,
 }))
 
 vi.mock('../api/documents', () => ({
@@ -73,6 +83,7 @@ describe('ReaderPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockGetProgress.mockResolvedValue(null)
+    mockSaveProgress.mockResolvedValue({ chapter_index: 0, percentage: 0 })
     vi.mocked(api.fetchChapters).mockResolvedValue(mockChapters)
     vi.mocked(api.fetchChapterContent).mockResolvedValue(mockContent)
     vi.mocked(api.fetchDocument).mockResolvedValue(mockDocument)
@@ -106,6 +117,25 @@ describe('ReaderPage', () => {
     renderWithProviders(<ReaderPage />, ['/read/doc-1'])
 
     expect(await screen.findByText(/page 2 \/ 3/i)).toBeInTheDocument()
+  })
+
+  it('waits for delayed DB progress before restoring and does not save chapter 0 first', async () => {
+    let resolveProgress: (value: { chapter_index: number; percentage: number } | null) => void = () => {}
+    mockGetProgress.mockImplementationOnce(
+      () => new Promise((resolve) => {
+        resolveProgress = resolve
+      }),
+    )
+
+    renderWithProviders(<ReaderPage />, ['/read/doc-1'])
+
+    await waitFor(() => expect(api.fetchChapterContent).toHaveBeenCalledTimes(3))
+    expect(mockSaveProgressService).not.toHaveBeenCalledWith('doc-1', 0)
+
+    resolveProgress({ chapter_index: 1, percentage: 50 })
+
+    expect(await screen.findByText(/page 2 \/ 3/i)).toBeInTheDocument()
+    expect(mockSaveProgressService).not.toHaveBeenCalledWith('doc-1', 0)
   })
 
   it('renders chapter content text', async () => {
